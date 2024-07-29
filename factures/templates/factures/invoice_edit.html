@@ -1,0 +1,307 @@
+{% extends "factures/base.html" %}
+
+{% block content %}
+<main class="h-full relative">
+    <style>
+        .main-container {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .main-grid {
+            display: grid;
+            gap: 6px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            height: 100%;
+        }
+        @media (min-width: 1024px) {
+            .main-container {
+                padding: 0 20px;
+            }
+        }
+        .card {
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .dark .card {
+            background-color: #2d3748;
+        }
+        .form-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+        .form-grid > div {
+            display: flex;
+            flex-direction: column;
+        }
+        table {
+            width: 100%;
+        }
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        .total-section {
+            margin-top: 1rem.
+        }
+        .draft-mode {
+            background-color: #f0ad4e; /* Exemple de couleur pour Brouillon */
+            color: white.
+        }
+        .completed-mode {
+            background-color: #5cb85c; /* Exemple de couleur pour Terminé */
+            color: white.
+        }
+    </style>
+    <div class="relative h-full">
+        <div class="main-grid absolute inset-0 p-4">
+            <!-- Carte de section de modification -->
+            <div class="card">
+                <div>
+                    <div class='justify-between flex py-2'>
+                        <div>
+                            <button id="draftButton" class="form-input" type="button" onclick="toggleDraftStatus()"> 
+                                {% if invoice.draft %} Brouillon {% else %} Terminé {% endif %}
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="rounded bg-indigo-500 px-4 py-2 text-white" onclick="downloadPDF()">
+                                Télécharger le PDF
+                            </button>
+                        </div>
+                    </div>
+                    <form method="POST" id="invoiceForm">
+                        {% csrf_token %}
+                        {% if invoice_id %}
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">ID de la facture: {{ invoice_id }}</label>
+                        </div>
+                        {% endif %}
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                {{ form.customer }}
+                            </div>
+                            <div>
+                                {{ form.customer_email }}
+                            </div>
+                            <div>
+                                {{ form.message }}
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                {{ form.billing_address }}
+                            </div>
+                            <div>
+                                {{ form.date }}
+                            </div>
+                            <div>
+                                {{ form.due_date }}
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                {{ form.tax_percentage }}
+                            </div>
+                            <div>
+                                <input id="draftHidden" type="hidden" name="draft" value="{{ form.draft.value|default_if_none:False }}">
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <div class="flex justify-between py-2">
+                                <div class="order-last">
+                                    <button type="button" class="rounded bg-blue-500 px-4 py-2 text-white" onclick="addRow()">
+                                        Ajouter une ligne
+                                    </button>
+                                </div>
+                                <div><h3 class="mb-4 text-xl font-bold">Articles de la facture</h3></div>
+                            </div>
+                            <table class="mb-4 min-w-full rounded-lg border border-gray-300 bg-white">
+                                {{ formset.management_form }}
+                                <tbody id="invoiceItems">
+                                    {% for form in formset %}
+                                    <tr>
+                                        <td class="border-b px-4 py-2">
+                                            {{ form.service }}
+                                        </td>
+                                        <td class="border-b px-4 py-2">
+                                            {{ form.description }}
+                                        </td>
+                                        <td class="border-b px-4 py-2">
+                                            {{ form.quantity }}
+                                        </td>
+                                        <td class="border-b px-4 py-2">
+                                            {{ form.rate }}
+                                        </td>
+                                        <td class="border-b px-4 py-2">
+                                            {{ form.amount }}
+                                        </td>
+                                        <td class="border-b px-2 py-4 text-center">
+                                            <button type="button" class="text-red-500 remove-form-row" onclick="removeRow(this)">
+                                                Supprimer
+                                            </button>
+                                        </td>
+                                        {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-6 flex items-center justify-between">
+                            <button type="submit" class="rounded bg-green-500 px-6 py-2 text-white">
+                                Enregistrer
+                            </button>
+                            <span id="invoiceSum" class="text-lg font-bold">Total: $0.00</span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card flex flex-col p-2">
+                <div class="flex-grow">
+                    <!-- Conteneur PDF -->
+                    {% if invoice.pk %}
+                    <iframe src="{% url 'factures:view-pdf' invoice.id %}" frameborder="0" class="w-full h-full"></iframe>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+    let isDraft = {{ invoice.draft|yesno:"true,false" }};
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function () {
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+        });
+
+        flatpickr("#id_date", {
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+            defaultDate: "{{ invoice.date|date:'Y-m-d' }}",
+        });
+        flatpickr("#id_due_date", {
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+            defaultDate: "{{ invoice.due_date|date:'Y-m-d' }}",
+        });
+
+        calcTotal();    
+        toggleDraftMode();
+
+        document.getElementById('invoiceItems').addEventListener('input', function (e) {
+            if (e.target && e.target.matches('input')) {
+                var row = e.target.closest('tr');
+                var rate = parseFloat(row.querySelector("input[name*='rate']").value) || 0;
+                var quantity = parseFloat(row.querySelector("input[name*='quantity']").value) || 0;
+                var amount = rate * quantity;
+                row.querySelector("input[name*='amount']").value = amount.toFixed(2);
+                calcTotal();
+            }
+        });
+
+        document.getElementById('draftButton').addEventListener('click', function () {
+            isDraft = !isDraft;
+            document.getElementById('draftHidden').value = isDraft;
+            this.textContent = isDraft ? 'Brouillon' : 'Terminé';
+            toggleDraftMode();
+        });
+    });
+
+    function toggleDraftMode() {
+        document.getElementById('draftHidden').value = isDraft;
+        const draftButton = document.getElementById('draftButton');
+        draftButton.className = isDraft ? 'draft-mode rounded py-2 px-2' : 'completed-mode rounded px-2 py-2';
+        const inputs = document.querySelectorAll('form input, form select, form textarea, form button');
+        
+        inputs.forEach(function(input) {
+            if (input.id !== 'draftButton' && input.type !== 'submit') {
+                input.disabled = !isDraft;
+            }
+        });
+
+    }
+
+    function calcTotal() {
+        var sum = 0;
+        document.querySelectorAll(".amount").forEach(function(element) {
+            var value = parseFloat(element.value);
+            if (!isNaN(value)) {
+                sum += value;
+            }
+        });
+        document.getElementById('invoiceSum').textContent = 'Total: $' + sum.toFixed(2);
+    }
+
+    function addRow() {
+        const row = `<tr>
+            <td class="px-4 py-2 border-b">
+                <input type="text" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-service" placeholder="Nom du produit">
+            </td>
+            <td class="px-4 py-2 border-b">
+                <input type="text" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-description" placeholder="Description">
+            </td>
+            <td class="px-4 py-2 border-b">
+                <input type="number" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-quantity" placeholder="Qté">
+            </td>
+            <td class="px-4 py-2 border-b">
+                <input type="number" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-rate" placeholder="Taux">
+            </td>
+            <td class="px-4 py-2 border-b">
+                <input type="number" class="p-2 block w-full border border-gray-300 rounded-md amount" name="form-__prefix__-amount" placeholder="Montant" readonly>
+            </td>
+            <td class="px-4 py-2 border-b text-center">
+                <button type="button" class="text-red-500 remove-form-row" onclick="removeRow(this)">Supprimer</button>
+            </td>
+        </tr>`.replace(/__prefix__/g, document.querySelectorAll('#invoiceItems tr').length);
+        document.getElementById('invoiceItems').insertAdjacentHTML('beforeend', row);
+        attachRowEvents();
+    }
+
+    function removeRow(button) {
+        button.closest('tr').remove();
+        calcTotal();
+    }
+
+    function attachRowEvents() {
+        document.querySelectorAll('#invoiceItems tr').forEach(function(row) {
+            row.querySelectorAll('input').forEach(function(input) {
+                input.addEventListener('input', function () {
+                    var rate = parseFloat(row.querySelector("input[name*='rate']").value) || 0;
+                    var quantity = parseFloat(row.querySelector("input[name*='quantity']").value) || 0;
+                    var amount = rate * quantity;
+                    row.querySelector("input[name*='amount']").value = amount.toFixed(2);
+                    calcTotal();
+                });
+            });
+        });
+    }
+
+    function downloadPDF() {
+        const pdfFrame = document.querySelector('iframe');
+        const pdfUrl = pdfFrame.src;
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = '{{ invoice.invoice_number }}.pdf';
+        link.click();
+    }
+</script>
+{% endblock %}

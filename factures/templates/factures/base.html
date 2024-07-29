@@ -1,0 +1,42 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bulma CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css" rel="stylesheet">
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+
+    <title>Django Invoices</title>
+    
+    {% block custom_css %}
+    <!-- Additional custom CSS -->
+    {% endblock %}
+</head>
+
+<body>
+    <div class="relative main-container mx-auto px-1">
+        {% block content %}
+        {% endblock %}
+        <footer>
+        <center><p class="has-text-weight-bold">Made by Your Company</p></center>
+   </footer>
+
+    </div>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Additional custom JavaScript -->
+    {% block custom_js %}
+    {% endblock %}
+</body>
+</html>

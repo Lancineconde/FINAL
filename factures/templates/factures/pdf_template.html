@@ -1,0 +1,111 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Facture {{ invoice_id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  </head>
+
+  <body class="bg-gray-100 p-8">
+    <div class="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-lg">
+      <div class="mt-8 items-center justify-between">
+        <div>
+          <img src="{% static 'img/logo.jpg' %}" alt="Company Logo" class="mb-1 h-16" />
+          <div class="border-t border-gray-900"></div>
+          <address class="mt-1 text-gray-600">
+            R & S Telecom<br />
+            8 Rue Des Freres Caudron<br />
+            78140 - Velizy-Villacoublay<br />
+            Siret: 804-963-403-000-30 <br />
+            Contact@rs-telecom.fr <br />
+            Tel: +33 963 57 28 32 <br />
+          </address>
+        </div>
+      </div>
+
+      <div class="flex justify-between">
+        <div></div>
+        <address class="mr-28 text-gray-600">
+          {{ customer }}<br />
+          {{ billing_address }}<br />
+          {{ customer_email }}<br />
+        </address>
+      </div>
+      <h1 class="mt-5 text-2xl font-bold">Facture {{ invoice_id }}</h1>
+      <div class="flex justify-between py-4">
+        <div>
+          <label>Date de la facture</label>
+          <br />
+          <b>{{ date }}</b>
+          <br />
+        </div>
+
+        <div class="mr-40">
+          <label>Date d'échéance</label>
+          <br />
+          <b>{{ due_date }}</b>
+          <br />
+        </div>
+      </div>
+
+      <table class="min-w-full bg-white">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">DESCRIPTION</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">PRIX UNITAIRE</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">QUANTITÉ</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in lineitem %}
+          <tr class="hover:bg-gray-100">
+            <td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">{{ item.description }}</td>
+            <td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">{{ item.rate }} €</td>
+            <td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">{{ item.quantity }}</td>
+            <td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">{{ item.amount }} €</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="flex justify-between mt-6">
+        <div></div>
+        <div>
+          <table class="w-full text-right">
+            <tr>
+              <td class="px-4 py-2 font-medium text-gray-600 border-b border-t border-gray-900">Montant HT</td>
+              <td class="px-4 py-2 font-medium text-gray-600 border-b border-t border-gray-900">{{ subtotal }} €</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-medium text-gray-600 border-b border-gray-900">TVA {{ invoice.tax_percentage }}%</td>
+              <td class="px-4 py-2 font-medium text-gray-600 border-b border-gray-900">{{ tax }} €</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-medium text-gray-600">Total</td>
+              <td class="px-4 py-2 font-medium text-gray-600">{{ invoice_total }} €</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h4 class="font-bold">Veuillez utiliser la référence suivante pour votre paiement : <b>{{ invoice_id }}</b></h4>
+      </div>
+
+      <div class="mt-4">
+        <p class="text-sm text-gray-600"><b>Conditions de règlement :</b> Règlement immédiat</p>
+        <p class="text-sm text-gray-600 mt-2"><b>Veuillez effectuer l’ordre de virement sur le compte FR76 3006 6108 7900 0201 3210 105 à l'ordre de R&S Telecom</b></p>
+        <p class="text-sm text-gray-600 mt-2"><b>Loi LME du 04-08-2008 - Intérets de retard : 3 fois le taux d'intérêt légal à compter du 31ème jour qui suit la date de facture. Indémnités pour frais de recouvrement 40€</b></p>
+      </div>
+
+      <div class="mt-8">
+        <div class="border-t border-gray-300"></div>
+        <div class="mt-2 text-center text-sm text-gray-600">
+          Contact Information: info@company.com | (123) 456-7890<br />
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

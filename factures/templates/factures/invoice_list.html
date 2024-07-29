@@ -1,0 +1,160 @@
+{% extends 'factures/base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-center">
+    <div class="p-4">
+        <div class="bg-white rounded-lg shadow-md">
+            <h1 class="text-3xl font-bold p-4">Factures</h1>
+        </div>
+    </div>
+</div>
+
+<form action="{% url 'factures:invoice-list' %}" method="get" class="p-4">
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center mb-4">
+            <input type="text" name="q" placeholder="Rechercher par client ou numéro de facture" class="form-input w-full" value="{{ query }}">
+            
+            <div class="relative inline-block text-left ml-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 10v-2a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1zM3 18v-2a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1z" />
+                </svg>
+                <div>
+                    <button id="filterButton" type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500" aria-expanded="true" aria-haspopup="true">
+                        <span>Filtres</span>
+                        <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06 0L10 10.94l3.71-3.73a.75.75 0 011.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="filterDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="filterButton">
+            <div class="py-1" role="none">
+                <div class="px-4 py-2">
+                    <label for="status" class="block text-gray-700">Statut</label>
+                    <select id="status" name="status" class="form-select w-full">
+                        <option value="">Tous les statuts</option>
+                        <option value="1" {% if status_filter == '1' %}selected{% endif %}>Payé</option>
+                        <option value="0" {% if status_filter == '0' %}selected{% endif %}>Non payé</option>
+                    </select>
+                </div>
+                <div class="px-4 py-2">
+                    <label for="date" class="block text-gray-700">Date</label>
+                    <select id="date" name="date" class="form-select w-full">
+                        <option value="">Toutes les dates</option>
+                        <option value="past" {% if date_filter == 'past' %}selected{% endif %}>Échu</option>
+                        <option value="future" {% if date_filter == 'future' %}selected{% endif %}>À venir</option>
+                    </select>
+                </div>
+                <div class="px-4 py-2">
+                    <label for="completion" class="block text-gray-700">Statut de réalisation</label>
+                    <select id="completion" name="completion" class="form-select w-full">
+                        <option value="">Tous les statuts de réalisation</option>
+                        <option value="completed" {% if completion_filter == 'completed' %}selected{% endif %}>Terminé</option>
+                        <option value="draft" {% if completion_filter == 'draft' %}selected{% endif %}>Brouillon</option>
+                    </select>
+                </div>
+                <div class="px-4 py-2 flex justify-end space-x-2">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full">Appliquer</button>
+                    <a href="{% url 'factures:invoice-list' %}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full ml-2">Réinitialiser</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<form action="{% url 'factures:invoice-list' %}" method="post" class="p-4">
+    {% csrf_token %}
+    <div class="bg-white rounded-lg shadow-md">
+        <header class="bg-gray-200 px-4 py-2 flex items-center justify-between">
+            <p class="text-lg font-semibold">
+                Toutes les commandes / Changer le statut de la commande &nbsp;
+                <button class="rounded-full bg-blue-500 hover:bg-blue-600 px-4 py-2 text-white">
+                    <a href="{% url 'factures:invoice-create' %}" class="text-white">Créer une facture</a>
+                </button>
+            </p>
+        </header>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="table-auto w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="px-4 py-2">#</th>
+                            <th class="px-4 py-2">Facture</th>
+                            <th class="px-4 py-2">Client</th>
+                            <th class="px-4 py-2">Date</th>
+                            <th class="px-4 py-2">Date d'échéance</th>
+                            <th class="px-4 py-2">Sous-total</th>
+                            <th class="px-4 py-2">Taxe</th>
+                            <th class="px-4 py-2">Total</th>
+                            <th class="px-4 py-2">Statut de paiement</th>
+                            <th class="px-4 py-2">Statut de la facture</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr class="border-b border-gray-200">
+                            <td class="px-4 py-2">
+                                <input type="checkbox" value="{{ invoice.id }}" name="invoice_id" class="form-checkbox h-4 w-4 text-blue-500">
+                            </td>
+                            <td class="px-4 py-2">
+                                <a href="{% url 'factures:invoice-edit' invoice.id %}" class="text-blue-500">{{ invoice.invoice_number }}</a>
+                            </td>
+                            <td class="px-4 py-2">{{ invoice.customer }}</td>
+                            <td class="px-4 py-2">{{ invoice.date }}</td>
+                            <td class="px-4 py-2">
+                                {% if invoice.days_remaining > 0 %}
+                                    Dans {{ invoice.days_remaining }} jours
+                                {% elif invoice.days_remaining == 0 %}
+                                    Aujourd'hui
+                                {% else %}
+                                    <span class="text-red-500">Il y a {{ invoice.days_remaining|abs }} jours</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2">{{ invoice.subtotal }}</td>
+                            <td class="px-4 py-2">{{ invoice.tax }}</td>
+                            <td class="px-4 py-2">{{ invoice.total_amount }}</td>
+                            <td class="px-4 py-2 text-right">
+                                {% if invoice.get_status %}
+                                <span class="bg-green-500 text-green-100 px-2 py-1 rounded-full">Payé</span>
+                                {% else %}
+                                <span class="bg-red-500 text-red-100 px-2 py-1 rounded-full">Non payé</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2 text-right">
+                                {% if invoice.draft %}
+                                <span class="px-4 py-2">Brouillon</span>
+                                {% else %}
+                                <span class="px-4 py-2">Final</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><br /><br /><br />
+    <div class="bg-white rounded-lg shadow-md p-4 mt-4">
+        <header class="bg-gray-200 px-4 py-2">
+            <p class="text-lg font-semibold">Changer le statut de la commande</p>
+        </header>
+        <div class="p-4 flex items-center">
+            <div class="inline-block relative w-32">
+                <select id="status" name="status" class="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline">
+                    <option value="1">Payé</option>
+                    <option value="0">Non payé</option>
+                </select>
+            </div>
+            <button type="submit" class="ml-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full">Changer le statut</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    document.getElementById('filterButton').addEventListener('click', function () {
+        document.getElementById('filterDropdown').classList.toggle('hidden');
+    });
+</script>
+{% endblock %}

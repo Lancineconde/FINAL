@@ -1,0 +1,228 @@
+{% extends "factures/base.html" %}
+
+{% block content %}
+<br>
+<section class="hero is-fullheight">
+    <div class="container">
+        <div class="card white-ter">
+            <div class="hero-body">
+                <form method="POST" action="">{% csrf_token %}
+                    {% if invoice_id %}
+                    <div class="columns is-centered">
+                        <div class="column is-one-third">
+                            <label>ID de la facture: {{ invoice_id }}</label>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="columns is-centered">
+                        <div class="column is-one-third">
+                            {{ form.customer }}
+                        </div>
+                        <div class="column is-one-third">
+                            {{ form.customer_email }}
+                        </div>
+                        <div class="column is-one-third">
+                            {{ form.message }}
+                        </div>
+                    </div>
+                    <div class="columns is-centered">
+                        <div class="column is-one-third">
+                            {{ form.billing_address }}
+                        </div>
+                        <div class="column is-one-third">
+                            {{ form.date }}
+                        </div>
+                        <div class="column is-one-third">
+                            {{ form.due_date }}
+                        </div>
+                    </div>
+                    <div class="columns is-centered">
+                        <div class="column is-one-third">
+                            {{ form.tax_percentage }}
+                        </div>
+                    </div>
+                    <div class="columns is-centered">
+                        <div class="column is-one-third">
+                            <label>Statut</label>
+                            <select name="draft" class="input" id="draft" onchange="toggleInputs()">
+                                <option value="1" {% if invoice.draft %}selected{% endif %}>Brouillon</option>
+                                <option value="0" {% if not invoice.draft %}selected{% endif %}>Terminé</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="table is-fullwidth is-bordered is-hoverable is-striped">
+                        <thead>
+                            <tr>
+                                <th>Produit/Service</th>
+                                <th>Description</th>
+                                <th>Qté</th>
+                                <th>Taux</th>
+                                <th>Montant</th>
+                                <th>Ajouter</th>
+                            </tr>
+                            {{ formset.management_form }}
+                        </thead>
+                        <tbody id="line-item-forms">
+                            {% for form in formset %}
+                            <tr>
+                                <td>{{ form.service }}</td>
+                                <td>{{ form.description }}</td>
+                                <td>{{ form.quantity }}</td>
+                                <td>{{ form.rate }}</td>
+                                <td class="amount">{{ form.amount.value }}</td>
+                                <td>
+                                    <div class="input-group-append">
+                                        <button class="button is-small btn btn-success add-form-row" type="button">+</button>&nbsp;
+                                        <button class="button is-small btn btn-danger remove-form-row" type="button">-</button>
+                                    </div>
+                                </td>
+                                {% for hidden in form.hidden_fields %}
+                                    {{ hidden }}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="row spacer">
+                        <div class="col-4 offset-2">
+                            <button type="submit" class="button btn btn-block is-info is-half">Enregistrer</button>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="columns">
+                        <div class="column">
+                            <h3 class="title is-4">Total($): <span id="total"></span></h3>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <br>
+    </div>
+</section>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr("#id_date", {
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+            onChange: function(selectedDates, dateStr, instance) {
+                // Calculate new due date
+                const dueDateField = document.getElementById('id_due_date');
+                const newDate = new Date(dateStr);
+                newDate.setDate(newDate.getDate() + 30);
+                dueDateField._flatpickr.setDate(newDate);
+            }
+        });
+        flatpickr("#id_due_date", {
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+        });
+
+        calc_total();
+        toggleInputs();
+    });
+
+    function toggleInputs() {
+        var draftSelector = document.getElementById('draft');
+        var isDraft = draftSelector.value === '1';
+        var inputs = document.querySelectorAll('form input, form select, form textarea, form button');
+        
+        inputs.forEach(function(input) {
+            if (input.id !== 'draft' && input.type !== 'submit') {
+                input.disabled = !isDraft;
+            }
+        });
+    }
+
+    document.querySelectorAll('table input').forEach(function(element) {
+        element.addEventListener('input', function () {
+            var row = this.closest('tr');
+            var rate = parseFloat(row.querySelector("input[name$='-rate']").value) || 0;
+            var quantity = parseFloat(row.querySelector("input[name$='-quantity']").value) || 0;
+            var amount = rate * quantity;
+            row.querySelector('.amount').textContent = amount.toFixed(2);
+            calc_total();
+        });
+    });
+
+    function calc_total() {
+        var sum = 0;
+        document.querySelectorAll(".amount").forEach(function(element) {
+            var value = parseFloat(element.textContent);
+            if (!isNaN(value)) {
+                sum += value;
+            }
+        });
+        document.getElementById('total').textContent = sum.toFixed(2);
+    }
+
+    function updateElementIndex(el, prefix, ndx) {
+        var id_regex = new RegExp('(' + prefix + '-\\d+)');
+        var replacement = prefix + '-' + ndx;
+        if (el.getAttribute("for")) el.setAttribute("for", el.getAttribute("for").replace(id_regex, replacement));
+        if (el.id) el.id = el.id.replace(id_regex, replacement);
+        if (el.name) el.name = el.name.replace(id_regex, replacement);
+    }
+
+    function cloneMore(selector, prefix) {
+        var newElement = document.querySelector(selector).cloneNode(true);
+        var total = document.getElementById('id_' + prefix + '-TOTAL_FORMS').value;
+        newElement.querySelectorAll(':input:not([type=button]):not([type=submit]):not([type=reset])').forEach(function(element) {
+            var name = element.getAttribute('name');
+            if (name) {
+                name = name.replace('-' + (total - 1) + '-', '-' + total + '-');
+                var id = 'id_' + name;
+                element.setAttribute({ 'name': name, 'id': id }).value = '';
+                element.removeAttribute('checked');
+            }
+        });
+        newElement.querySelectorAll('label').forEach(function(element) {
+            var forValue = element.getAttribute('for');
+            if (forValue) {
+                forValue = forValue.replace('-' + (total - 1) + '-', '-' + total + '-');
+                element.setAttribute('for', forValue);
+            }
+        });
+        total++;
+        document.getElementById('id_' + prefix + '-TOTAL_FORMS').value = total;
+        document.querySelector(selector).after(newElement);
+        return false;
+    }
+
+    function deleteForm(prefix, btn) {
+        var total = parseInt(document.getElementById('id_' + prefix + '-TOTAL_FORMS').value);
+        if (total > 1) {
+            btn.closest('tr').remove();
+            var forms = document.querySelectorAll('#line-item-forms tr');
+            document.getElementById('id_' + prefix + '-TOTAL_FORMS').value = forms.length;
+            forms.forEach(function(form, index) {
+                form.querySelectorAll(':input').forEach(function(input) {
+                    updateElementIndex(input, prefix, index);
+                });
+            });
+        }
+        return false;
+    }
+
+    document.querySelectorAll('.add-form-row').forEach(function(button) {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            cloneMore('#line-item-forms tr:last', 'form');
+            return false;
+        });
+    });
+
+    document.querySelectorAll('.remove-form-row').forEach(function(button) {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            deleteForm('form', this);
+            return false;
+        });
+    });
+</script>
+{% endblock %}
