@@ -6,7 +6,8 @@ from django.views import View
 from .models import LineItem, Invoice
 from .forms import LineItemFormset, InvoiceForm
 import pdfkit  # type: ignore
-
+from pulls.utils import login_required_connect
+from tests.views import recup_infos_users
 from django.db.models import Q
 from django.core.paginator import Paginator
 
@@ -203,3 +204,39 @@ def generate_PDF(request, id):
     response = HttpResponse(pdf, content_type="application/pdf")
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+# def get_old_voices():
+#     # Configuration de la connexion à la base de données Odoo
+#     db = MySQLdb.connect(
+#         host=config('DB_HOST'),
+#         user=config('DB_USER'),
+#         passwd=config('DB_PASSWORD'),
+#         db=config('DB_NAME'),
+#         port=3306
+#     )
+
+#     # Créer un curseur pour exécuter les requêtes SQL
+#     cursor = db.cursor()
+
+#     # Exécuter la requête SQL pour récupérer les données de la table cv
+#     cursor.execute("SELECT f.id, f.name, f.store_fname , f.mimetype , f.create_uid as fac_proprio, u.id as user_id, u.login as email_utilisateur from facture as f left join odoo_users as u on f.create_uid = u.id ;")
+
+#     # Récupérer les résultats de la requête
+#     facs = cursor.fetchall()
+#     print('la récupération des factures s\'est correctement effectuée ')
+#     # Fermer la connexion à la base de données
+#     db.close()
+
+#     # Retourner les résultats
+#     return facs
+
+# @login_required_connect
+# def anciennes_factures(request):
+#     #récupération des informations des utilisateurs lors du login
+#     user = request.user 
+#     context = recup_infos_users(user)
+     
+#     try:
+#         facs = get_old_voices()
+#         fac_list= []
+        

@@ -79,7 +79,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             var filename = "{{ fac.2 }}";
             var mimeType = "{{ fac.3 }}";
-            var fileUrlBase = "{% static 'test/CV/filestore/' %}" + filename;
+            var fileUrlBase = "/media/CV/filestore/" + filename;
             var fileUrl = fileUrlBase; // Default to the base URL
 
             // Mapping MIME types to file extensions
