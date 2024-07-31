@@ -1,7 +1,6 @@
 <div class="topnav">
     <div class="container-fluid">
         <nav class="navbar navbar-dark navbar-expand-lg topnav-menu">
-
             <div class="collapse navbar-collapse" id="topnav-menu-content">
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
@@ -27,6 +26,9 @@
                             <a href="{% url 'employes' %}" class="dropdown-item">Gestion des employés</a>   
                             {% endif %}
                             <a href="{% url 'feedback' %}" class="dropdown-item">feedback</a> 
+                            {% if user.users_type in 'admin superadmin' %}
+                            <a href="{% url 'factures:invoice-list' %}" class="dropdown-item">Factures</a>
+                            {% endif %}
                         </div>
                     </li>
                     <li class="nav-item dropdown">

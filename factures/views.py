@@ -6,13 +6,13 @@ from django.views import View
 from .models import LineItem, Invoice
 from .forms import LineItemFormset, InvoiceForm
 import pdfkit  # type: ignore
-from pulls.utils import login_required_connect
+from pulls.utils import login_required_connect, CustomLoginRequiredMixin
 from tests.views import recup_infos_users
 from django.db.models import Q
 from django.core.paginator import Paginator
 
 
-class InvoiceListView(View):
+class InvoiceListView(CustomLoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         query = request.GET.get("q", "")
         status_filter = request.GET.get("status", "")
@@ -24,7 +24,7 @@ class InvoiceListView(View):
 
         if query:
             invoices = invoices.filter(
-                Q(customer__icontains=query) | Q(invoice_number__icontains=query)
+                Q(customer__icontains=query) | Q(invoice_number__icontains(query))
             )
 
         if status_filter:
@@ -33,9 +33,9 @@ class InvoiceListView(View):
         if date_filter:
             today = datetime.now().date()
             if date_filter == "past":
-                invoices = invoices.filter(due_date__lt=today)
+                invoices = invoices.filter(due_date__lt(today))
             elif date_filter == "future":
-                invoices = invoices.filter(due_date__gt=today)
+                invoices = invoices.filter(due_date__gt(today))
 
         if completion_filter:
             if completion_filter == "completed":
@@ -81,6 +81,7 @@ class InvoiceListView(View):
         return redirect("factures:invoice-list")
 
 
+@login_required_connect
 def create_or_edit_invoice(request, id=None):
     if id:
         invoice = get_object_or_404(Invoice, id=id)
@@ -163,6 +164,7 @@ def create_or_edit_invoice(request, id=None):
     )
 
 
+@login_required_connect
 def view_PDF(request, id=None):
     invoice = get_object_or_404(Invoice, id=id)
     lineitem = invoice.lineitem_set.all()
@@ -197,6 +199,8 @@ def view_PDF(request, id=None):
     }
     return render(request, "factures/pdf_template.html", context)
 
+
+@login_required_connect
 def generate_PDF(request, id):
     invoice = get_object_or_404(Invoice, id=id)
     pdf = pdfkit.from_url(request.build_absolute_uri(reverse("factures:view-pdf", args=[id])), False)
@@ -204,39 +208,3 @@ def generate_PDF(request, id):
     response = HttpResponse(pdf, content_type="application/pdf")
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
-
-# def get_old_voices():
-#     # Configuration de la connexion à la base de données Odoo
-#     db = MySQLdb.connect(
-#         host=config('DB_HOST'),
-#         user=config('DB_USER'),
-#         passwd=config('DB_PASSWORD'),
-#         db=config('DB_NAME'),
-#         port=3306
-#     )
-
-#     # Créer un curseur pour exécuter les requêtes SQL
-#     cursor = db.cursor()
-
-#     # Exécuter la requête SQL pour récupérer les données de la table cv
-#     cursor.execute("SELECT f.id, f.name, f.store_fname , f.mimetype , f.create_uid as fac_proprio, u.id as user_id, u.login as email_utilisateur from facture as f left join odoo_users as u on f.create_uid = u.id ;")
-
-#     # Récupérer les résultats de la requête
-#     facs = cursor.fetchall()
-#     print('la récupération des factures s\'est correctement effectuée ')
-#     # Fermer la connexion à la base de données
-#     db.close()
-
-#     # Retourner les résultats
-#     return facs
-
-# @login_required_connect
-# def anciennes_factures(request):
-#     #récupération des informations des utilisateurs lors du login
-#     user = request.user 
-#     context = recup_infos_users(user)
-     
-#     try:
-#         facs = get_old_voices()
-#         fac_list= []
-        

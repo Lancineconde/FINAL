@@ -4,12 +4,12 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core import exceptions
-from .models import Users,UserTwoFactorAuthData
+from .models import Users, UserTwoFactorAuthData
 from six import text_type
-import pyotp # type: ignore
+import pyotp  # type: ignore
 from django.shortcuts import redirect
 from functools import wraps
-
+from django.utils.decorators import method_decorator
 
 
 USERNAME_MIN_LENGTH = 9
@@ -58,7 +58,6 @@ def is_valid_email(email):
     }
 
 
-
 def validate_email(email):
     if Users.objects.filter(users_mail=email).exists():
         return {"success": False, "reason": "Email Address already exists"}
@@ -76,7 +75,6 @@ def validate_username(username):
             "reason": "L'utilisateur avec ce numéro d'immatriculation existe déjà",
         }
     if not isinstance(username, text_type):
-
         return {
             "success": False,
             "reason": "Le numéro d'immatriculation doit être alphanumérique",
@@ -89,7 +87,6 @@ def validate_username(username):
         }
 
     if not username.isalnum():
-
         return {
             "success": False,
             "reason": "Le numéro d'immatriculation doit être alphanumérique",
@@ -120,37 +117,42 @@ def user_two_factor_auth_data_create(*, user) -> UserTwoFactorAuthData:
     return two_factor_auth_data
 
 def AdminSetupTwoFactorAuthView(user):
-    context={}
+    context = {}
     try:
         two_factor_auth_data = user_two_factor_auth_data_create(user=user)
         otp_secret = two_factor_auth_data.otp_secret
-
 
         context["otp_secret"] = otp_secret
         context["qr_code"] = two_factor_auth_data.generate_qr_code(
                 name=user.users_mail
             )
     except ValidationError as exc:
-        context["form_errors"]=exc.message
+        context["form_errors"] = exc.message
     return context
+
 
 def login_required_connect(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         user_id = request.session.get('user_id')
-        print(request.session.get(user_id))
         if not user_id:
             return redirect('login')
- 
+
         try:
             user = Users.objects.get(id_user=user_id)
         except Users.DoesNotExist:
             return redirect('login')
- 
-    
+
         request.user = user
         return view_func(request, *args, **kwargs)
     return _wrapped_view
+
+
+class CustomLoginRequiredMixin:
+    @method_decorator(login_required_connect)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 
 # Décorateur pour vérifier le type d'utilisateur
 def utilisateur_autorise(types_autorises):
