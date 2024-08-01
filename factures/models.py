@@ -1,7 +1,7 @@
-# models.py
 from django.db import models
 import datetime
 from decimal import Decimal
+import jsonfield
 
 class Invoice(models.Model):
     customer = models.CharField(max_length=255, blank=True)
@@ -10,14 +10,13 @@ class Invoice(models.Model):
     date = models.DateField(blank=True, null=True)
     due_date = models.DateField(null=True, blank=True)
     message = models.TextField(default="This is a default message.", blank=True)
-    total_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True
-    )
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     status = models.BooleanField(default=False)
     invoice_number = models.CharField(max_length=30, unique=True, blank=True)
     draft = models.BooleanField(default=True)
     tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=20.00, blank=True)
-    unique_id = models.PositiveIntegerField(editable=False, null=True, blank=True)  # Add this field to store the unique part
+    unique_id = models.PositiveIntegerField(editable=False, null=True, blank=True)
+    log = jsonfield.JSONField(default=list)
 
     def __str__(self):
         return str(self.customer)
@@ -32,7 +31,6 @@ class Invoice(models.Model):
         if not self.invoice_number or self._state.adding:
             self.generate_invoice_number()
         else:
-            # Check if the date has changed
             if self.pk is not None:
                 orig = Invoice.objects.get(pk=self.pk)
                 if orig.date != self.date:
@@ -54,6 +52,16 @@ class Invoice(models.Model):
             self.unique_id = (last_invoice.unique_id if last_invoice else 0) + 1
 
         self.invoice_number = f"FAC/{invoice_year}/{invoice_month:02d}/{self.unique_id:04d}"
+
+    def add_log_entry(self, user, message):
+        username = getattr(user, 'username', getattr(user, 'users_name', 'Unknown User'))
+        log_entry = {
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "user": username,
+            "message": message
+        }
+        self.log.append(log_entry)
+        self.save()
 
 class LineItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)

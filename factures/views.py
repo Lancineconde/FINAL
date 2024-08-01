@@ -11,7 +11,6 @@ from tests.views import recup_infos_users
 from django.db.models import Q
 from django.core.paginator import Paginator
 
-
 class InvoiceListView(CustomLoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         query = request.GET.get("q", "")
@@ -24,7 +23,7 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
 
         if query:
             invoices = invoices.filter(
-                Q(customer__icontains=query) | Q(invoice_number__icontains(query))
+                Q(customer__icontains(query)) | Q(invoice_number__icontains(query))
             )
 
         if status_filter:
@@ -73,13 +72,16 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
             update_status_for_invoices = int(request.POST["status"])
             invoices = Invoice.objects.filter(id__in=invoice_ids)
 
-            if update_status_for_invoices == 0:
-                invoices.update(status=False)
-            else:
-                invoices.update(status=True)
+            for invoice in invoices:
+                original_status = invoice.status
+                new_status = update_status_for_invoices == 1
+                if original_status != new_status:
+                    invoice.status = new_status
+                    invoice.save()
+                    action = "Paid" if new_status else "Unpaid"
+                    invoice.add_log_entry(request.user, f"Status changed to {action}")
 
         return redirect("factures:invoice-list")
-
 
 @login_required_connect
 def create_or_edit_invoice(request, id=None):
@@ -105,7 +107,7 @@ def create_or_edit_invoice(request, id=None):
             if formset.is_valid():
                 if "create" in request.POST:
                     invoice.draft = False  # Mark as finalized
-                
+
                 total = Decimal("0.00")
                 invoice.lineitem_set.all().delete()  # Delete existing line items
                 for form in formset:
@@ -129,7 +131,20 @@ def create_or_edit_invoice(request, id=None):
 
                 tax = total * (invoice.tax_percentage / 100)
                 total_with_tax = total + tax
+                original_total = invoice.total_amount
                 invoice.total_amount = total_with_tax
+
+                # Add log entry for total amount change
+                if original_total != invoice.total_amount:
+                    invoice.add_log_entry(request.user, f"Total changed from {original_total} to {invoice.total_amount}")
+
+                # Add log entry for draft status change
+                if not invoice.draft:
+                    invoice.add_log_entry(request.user, "Status changed to Terminé")
+                else:
+                    invoice.add_log_entry(request.user, "Status changed to Brouillon")
+
+                # Save the invoice with logs
                 invoice.save()
 
                 # Debugging info
@@ -162,7 +177,6 @@ def create_or_edit_invoice(request, id=None):
         "factures/invoice_edit.html" if id else "factures/invoice_create.html",
         context,
     )
-
 
 @login_required_connect
 def view_PDF(request, id=None):
@@ -198,7 +212,6 @@ def view_PDF(request, id=None):
         "subtotal": subtotal,
     }
     return render(request, "factures/pdf_template.html", context)
-
 
 @login_required_connect
 def generate_PDF(request, id):

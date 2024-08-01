@@ -2,7 +2,6 @@ from django import forms
 from django.forms import modelformset_factory
 from .models import LineItem, Invoice
 
-
 class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
@@ -47,7 +46,6 @@ class InvoiceForm(forms.ModelForm):
             raise forms.ValidationError("Tax percentage must be between 0 and 100")
         return tax_percentage
 
-
 class LineItemForm(forms.ModelForm):
     class Meta:
         model = LineItem
@@ -73,7 +71,6 @@ class LineItemForm(forms.ModelForm):
                 }
             ),
         }
-
 
 LineItemFormset = modelformset_factory(
     LineItem, form=LineItemForm, extra=1, can_delete=True

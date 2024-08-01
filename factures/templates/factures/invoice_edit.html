@@ -61,6 +61,18 @@
             background-color: #5cb85c; /* Exemple de couleur pour Terminé */
             color: white.
         }
+        .log-entry {
+            padding: 0.5rem;
+            border-bottom: 1px solid #ccc;
+        }
+        .logs-container {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
     </style>
     <div class="relative h-full">
         <div class="main-grid absolute inset-0 p-4">
@@ -173,6 +185,19 @@
                     {% if invoice.pk %}
                     <iframe src="{% url 'factures:view-pdf' invoice.id %}" frameborder="0" class="w-full h-full"></iframe>
                     {% endif %}
+                </div>
+                <!-- Log section -->
+                <div class="logs-container">
+                    <h3 class="mb-4 text-xl font-bold">Logs</h3>
+                    <ul>
+                        {% for entry in invoice.log %}
+                        <li class="log-entry">
+                            <p><strong>Timestamp:</strong> {{ entry.timestamp }}</p>
+                            <p><strong>User:</strong> {{ entry.user }}</p>
+                            <p><strong>Message:</strong> {{ entry.message }}</p>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
         </div>

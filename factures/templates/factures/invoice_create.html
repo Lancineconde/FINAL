@@ -95,6 +95,15 @@
                         </div>
                     </div>
                 </form>
+                <!-- Log section -->
+                <div>
+                    <h3 class="mb-4 text-xl font-bold">Logs</h3>
+                    <ul>
+                        {% for entry in invoice.log %}
+                        <li>{{ entry.timestamp }} - {{ entry.user }}: {{ entry.action }} {{ entry.message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
         </div>
         <br>
