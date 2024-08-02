@@ -11,6 +11,7 @@ from tests.views import recup_infos_users
 from django.db.models import Q
 from django.core.paginator import Paginator
 
+
 class InvoiceListView(CustomLoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         query = request.GET.get("q", "")
@@ -83,6 +84,7 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
 
         return redirect("factures:invoice-list")
 
+
 @login_required_connect
 def create_or_edit_invoice(request, id=None):
     if id:
@@ -103,7 +105,9 @@ def create_or_edit_invoice(request, id=None):
             if not invoice.pk:
                 invoice.save()  # Save the invoice to generate the primary key if not already saved
 
-            formset = LineItemFormset(request.POST, queryset=LineItem.objects.filter(invoice=invoice))
+            formset = LineItemFormset(
+                request.POST, queryset=LineItem.objects.filter(invoice=invoice)
+            )
             if formset.is_valid():
                 if "create" in request.POST:
                     invoice.draft = False  # Mark as finalized
@@ -136,7 +140,10 @@ def create_or_edit_invoice(request, id=None):
 
                 # Add log entry for total amount change
                 if original_total != invoice.total_amount:
-                    invoice.add_log_entry(request.user, f"Total changed from {original_total} to {invoice.total_amount}")
+                    invoice.add_log_entry(
+                        request.user,
+                        f"Total changed from {original_total or '0'} to {invoice.total_amount}",
+                    )
 
                 # Add log entry for draft status change
                 if not invoice.draft:
@@ -178,12 +185,15 @@ def create_or_edit_invoice(request, id=None):
         context,
     )
 
+
 @login_required_connect
 def view_PDF(request, id=None):
     invoice = get_object_or_404(Invoice, id=id)
     lineitem = invoice.lineitem_set.all()
 
-    tax_rate = invoice.tax_percentage / 100 if invoice.tax_percentage else Decimal("0.00")
+    tax_rate = (
+        invoice.tax_percentage / 100 if invoice.tax_percentage else Decimal("0.00")
+    )
 
     if invoice.total_amount is None:
         subtotal = Decimal("0.00")
@@ -213,11 +223,14 @@ def view_PDF(request, id=None):
     }
     return render(request, "factures/pdf_template.html", context)
 
+
 @login_required_connect
 def generate_PDF(request, id):
     invoice = get_object_or_404(Invoice, id=id)
-    pdf = pdfkit.from_url(request.build_absolute_uri(reverse("factures:view-pdf", args=[id])), False)
-    filename = f'{invoice.invoice_number}.pdf'
+    pdf = pdfkit.from_url(
+        request.build_absolute_uri(reverse("factures:view-pdf", args=[id])), False
+    )
+    filename = f"{invoice.invoice_number}.pdf"
     response = HttpResponse(pdf, content_type="application/pdf")
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response

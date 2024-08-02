@@ -131,7 +131,7 @@
                         <div class="mt-6">
                             <div class="flex justify-between py-2">
                                 <div class="order-last">
-                                    <button type="button" class="rounded bg-blue-500 px-4 py-2 text-white" onclick="addRow()">
+                                    <button type="button" class="rounded bg-blue-500 px-4 py-2 text-white add-form-row">
                                         Ajouter une ligne
                                     </button>
                                 </div>
@@ -158,7 +158,7 @@
                                             {{ form.amount }}
                                         </td>
                                         <td class="border-b px-2 py-4 text-center">
-                                            <button type="button" class="text-red-500 remove-form-row" onclick="removeRow(this)">
+                                            <button type="button" class="text-red-500 remove-form-row">
                                                 Supprimer
                                             </button>
                                         </td>
@@ -249,84 +249,128 @@
             this.textContent = isDraft ? 'Brouillon' : 'Terminé';
             toggleDraftMode();
         });
+
+        $(document).on('click', '.add-form-row', function (e) {
+            e.preventDefault();
+            cloneMore('#invoiceItems tr:last', 'form');
+            return false;
+        });
+
+        $(document).on('click', '.remove-form-row', function (e) {
+            e.preventDefault();
+            deleteForm('form', $(this));
+            return false;
+        });
+
     });
-
-    function toggleDraftMode() {
-        document.getElementById('draftHidden').value = isDraft;
-        const draftButton = document.getElementById('draftButton');
-        draftButton.className = isDraft ? 'draft-mode rounded py-2 px-2' : 'completed-mode rounded px-2 py-2';
-        const inputs = document.querySelectorAll('form input, form select, form textarea, form button');
-        
-        inputs.forEach(function(input) {
-            if (input.id !== 'draftButton' && input.type !== 'submit') {
-                input.disabled = !isDraft;
-            }
-        });
-
-    }
-
+  
     function calcTotal() {
-        var sum = 0;
-        document.querySelectorAll(".amount").forEach(function(element) {
-            var value = parseFloat(element.value);
-            if (!isNaN(value)) {
-                sum += value;
+        let total = 0;
+        document.querySelectorAll("input[name*='amount']").forEach(function (el) {
+            total += parseFloat(el.value) || 0;
+        });
+        document.getElementById('invoiceSum').textContent = 'Total: $' + total.toFixed(2);
+    }
+
+    function cloneMore(selector, prefix) {
+        var newElement = $(selector).clone(true);
+        var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+        newElement.find(':input:not([type=button]):not([type=submit]):not([type=reset])').each(function () {
+            var name = $(this).attr('name');
+            if (name) {
+                name = name.replace('-' + (total - 1) + '-', '-' + total + '-');
+                var id = 'id_' + name;
+                $(this).attr({ 'name': name, 'id': id }).val('').removeAttr('checked');
             }
         });
-        document.getElementById('invoiceSum').textContent = 'Total: $' + sum.toFixed(2);
+        newElement.find('label').each(function () {
+            var forValue = $(this).attr('for');
+            if (forValue) {
+                forValue = forValue.replace('-' + (total - 1) + '-', '-' + total + '-');
+                $(this).attr({ 'for': forValue });
+            }
+        });
+        total++;
+        $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+        $(selector).after(newElement);
+        attachRowEvents(newElement);
+        return false;
     }
 
-    function addRow() {
-        const row = `<tr>
-            <td class="px-4 py-2 border-b">
-                <input type="text" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-service" placeholder="Nom du produit">
-            </td>
-            <td class="px-4 py-2 border-b">
-                <input type="text" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-description" placeholder="Description">
-            </td>
-            <td class="px-4 py-2 border-b">
-                <input type="number" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-quantity" placeholder="Qté">
-            </td>
-            <td class="px-4 py-2 border-b">
-                <input type="number" class="p-2 block w-full border border-gray-300 rounded-md" name="form-__prefix__-rate" placeholder="Taux">
-            </td>
-            <td class="px-4 py-2 border-b">
-                <input type="number" class="p-2 block w-full border border-gray-300 rounded-md amount" name="form-__prefix__-amount" placeholder="Montant" readonly>
-            </td>
-            <td class="px-4 py-2 border-b text-center">
-                <button type="button" class="text-red-500 remove-form-row" onclick="removeRow(this)">Supprimer</button>
-            </td>
-        </tr>`.replace(/__prefix__/g, document.querySelectorAll('#invoiceItems tr').length);
-        document.getElementById('invoiceItems').insertAdjacentHTML('beforeend', row);
-        attachRowEvents();
-    }
-
-    function removeRow(button) {
-        button.closest('tr').remove();
-        calcTotal();
-    }
-
-    function attachRowEvents() {
-        document.querySelectorAll('#invoiceItems tr').forEach(function(row) {
-            row.querySelectorAll('input').forEach(function(input) {
-                input.addEventListener('input', function () {
-                    var rate = parseFloat(row.querySelector("input[name*='rate']").value) || 0;
-                    var quantity = parseFloat(row.querySelector("input[name*='quantity']").value) || 0;
-                    var amount = rate * quantity;
-                    row.querySelector("input[name*='amount']").value = amount.toFixed(2);
-                    calcTotal();
+    function deleteForm(prefix, btn) {
+        var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+        if (total > 1) {
+            btn.closest('tr').remove();
+            var forms = $('#invoiceItems tr');
+            $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
+            for (var i = 0, formCount = forms.length; i < formCount; i++) {
+                $(forms.get(i)).find(':input').each(function () {
+                    updateElementIndex(this, prefix, i);
                 });
+            }
+        }
+        return false;
+    }
+
+    function attachRowEvents(row) {
+        row.find('.add-form-row').on('click', function (e) {
+            e.preventDefault();
+            cloneMore('#invoiceItems tr:last', 'form');
+            return false;
+        });
+
+        row.find('.remove-form-row').on('click', function (e) {
+            e.preventDefault();
+            deleteForm('form', $(this));
+            return false;
+        });
+
+        row.find('input').on('input', function () {
+            var tr = $(this).closest('tr');
+            var rate = tr.find("input[name*='-rate']").val();
+            var quantity = tr.find('input[name*="-quantity"]').val();
+            var amount = rate * quantity;
+            tr.find('.amount').html(amount.toFixed(2));
+            calc_total();
+        });
+    }
+
+    function updateFormIndices() {
+        const rows = document.querySelectorAll('#invoiceItems tr');
+        rows.forEach((row, index) => {
+            row.querySelectorAll('input').forEach(input => {
+                const name = input.name;
+                if (name) {
+                    const updatedName = name.replace(/items-\d+-/, `items-${index}-`);
+                    input.name = updatedName;
+                }
             });
         });
+        document.getElementById('id_form-TOTAL_FORMS').value = rows.length;
+    }
+
+    function toggleDraftStatus() {
+        isDraft = !isDraft;
+        document.getElementById('draftHidden').value = isDraft;
+        document.getElementById('draftButton').textContent = isDraft ? 'Brouillon' : 'Terminé';
+        toggleDraftMode();
+    }
+
+    function toggleDraftMode() {
+        const draftButton = document.getElementById('draftButton');
+        if (isDraft) {
+            draftButton.classList.add('draft-mode');
+            draftButton.classList.remove('completed-mode');
+        } else {
+            draftButton.classList.add('completed-mode');
+            draftButton.classList.remove('draft-mode');
+        }
     }
 
     function downloadPDF() {
-        const pdfFrame = document.querySelector('iframe');
-        const pdfUrl = pdfFrame.src;
-        const link = document.createElement('a');
-        link.href = pdfUrl;
-        link.download = '{{ invoice.invoice_number }}.pdf';
-        link.click();
+        const invoiceId = "{{ invoice_id }}";
+        if (invoiceId) {
+        }
     }
 </script>
 {% endblock %}

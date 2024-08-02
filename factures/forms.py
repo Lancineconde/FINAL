@@ -2,6 +2,7 @@ from django import forms
 from django.forms import modelformset_factory
 from .models import LineItem, Invoice
 
+
 class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
@@ -26,10 +27,18 @@ class InvoiceForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": ""}
             ),
             "date": forms.DateInput(
-                attrs={"class": "form-control", "placeholder": "YYYY-MM-DD", "type": "date"}
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "dd-MM-yyyy",
+                    "type": "date",
+                }
             ),
             "due_date": forms.DateInput(
-                attrs={"class": "form-control", "placeholder": "YYYY-MM-DD", "type": "date"}
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "dd-MM-yyyy",
+                    "type": "date",
+                }
             ),
             "message": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Message"}
@@ -41,10 +50,11 @@ class InvoiceForm(forms.ModelForm):
         }
 
     def clean_tax_percentage(self):
-        tax_percentage = self.cleaned_data.get("tax_percentage")
+        tax_percentage = self.cleaned_data.get("tax_percentage") or 0
         if tax_percentage < 0 or tax_percentage > 100:
             raise forms.ValidationError("Tax percentage must be between 0 and 100")
         return tax_percentage
+
 
 class LineItemForm(forms.ModelForm):
     class Meta:
@@ -71,6 +81,7 @@ class LineItemForm(forms.ModelForm):
                 }
             ),
         }
+
 
 LineItemFormset = modelformset_factory(
     LineItem, form=LineItemForm, extra=1, can_delete=True
