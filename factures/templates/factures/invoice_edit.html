@@ -55,7 +55,6 @@
         }
         .draft-mode {
             background-color: #f0ad4e; /* Exemple de couleur pour Brouillon */
-            color: white.
         }
         .completed-mode {
             background-color: #5cb85c; /* Exemple de couleur pour Terminé */
@@ -81,7 +80,7 @@
                 <div>
                     <div class='justify-between flex py-2'>
                         <div>
-                            <button id="draftButton" class="form-input" type="button" onclick="toggleDraftStatus()"> 
+                            <button id="draftButton" class="form-input rounded py-2 px-2" type="button"> 
                                 {% if invoice.draft %} Brouillon {% else %} Terminé {% endif %}
                             </button>
                         </div>
@@ -211,6 +210,7 @@
     let isDraft = {{ invoice.draft|yesno:"true,false" }};
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.querySelector('form');
+        
         form.addEventListener('submit', function () {
             const submitButton = form.querySelector('button[type="submit"]');
             submitButton.disabled = true;
@@ -229,7 +229,7 @@
             defaultDate: "{{ invoice.due_date|date:'Y-m-d' }}",
         });
 
-        calcTotal();    
+        calcTotal();
         toggleDraftMode();
 
         document.getElementById('invoiceItems').addEventListener('input', function (e) {
@@ -331,7 +331,7 @@
             var quantity = tr.find('input[name*="-quantity"]').val();
             var amount = rate * quantity;
             tr.find('.amount').html(amount.toFixed(2));
-            calc_total();
+            calcTotal();
         });
     }
 
@@ -349,13 +349,6 @@
         document.getElementById('id_form-TOTAL_FORMS').value = rows.length;
     }
 
-    function toggleDraftStatus() {
-        isDraft = !isDraft;
-        document.getElementById('draftHidden').value = isDraft;
-        document.getElementById('draftButton').textContent = isDraft ? 'Brouillon' : 'Terminé';
-        toggleDraftMode();
-    }
-
     function toggleDraftMode() {
         const draftButton = document.getElementById('draftButton');
         if (isDraft) {
@@ -370,6 +363,7 @@
     function downloadPDF() {
         const invoiceId = "{{ invoice_id }}";
         if (invoiceId) {
+            // Add your PDF download logic here
         }
     }
 </script>
