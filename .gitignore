@@ -13,3 +13,4 @@ run_forest.sh
 env
 *.sql
 media/CV/
+wa_templates/
