@@ -51,14 +51,14 @@
             margin-top: 1rem;
         }
         .total-section {
-            margin-top: 1rem.
+            margin-top: 1rem;
         }
         .draft-mode {
             background-color: #f0ad4e; /* Exemple de couleur pour Brouillon */
         }
         .completed-mode {
             background-color: #5cb85c; /* Exemple de couleur pour Terminé */
-            color: white.
+            color: white;
         }
         .log-entry {
             padding: 0.5rem;
@@ -186,7 +186,7 @@
                             <button type="submit" class="rounded bg-green-500 px-6 py-2 text-white">
                                 Enregistrer
                             </button>
-                            <span id="invoiceSum" class="text-lg font-bold">Total: $0.00</span>
+                            <span id="invoiceSum" class="text-lg font-bold">Total: 0.00€</span>
                         </div>
                     </form>
                 </div>
@@ -295,7 +295,7 @@
         document.querySelectorAll("input[name*='amount']").forEach(function (el) {
             total += parseFloat(el.value) || 0;
         });
-        document.getElementById('invoiceSum').textContent = 'Total: $' + total.toFixed(2);
+        document.getElementById('invoiceSum').textContent = 'Total: ' + total.toFixed(2) ;
     }
 
     function cloneMore(selector, prefix) {
