@@ -389,10 +389,10 @@
     function downloadPDF() {
         const iframe = document.getElementById('pdfIframe');
         const iframeDocument = iframe.contentDocument.querySelector('.mx-auto')
+        const invoiceId = '{{ invoice_id }}';  // Make sure invoice_id is available
 
-        html2pdf().from(iframeDocument).save();
+        html2pdf().from(iframeDocument).set({filename: `${invoiceId}`}).save();
 
-      console.log(iframeDocument)
     }
 
 </script>
