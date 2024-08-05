@@ -195,7 +195,7 @@
                 <div class="flex-grow">
                     <!-- Conteneur PDF -->
                     {% if invoice.pk %}
-                    <iframe src="{% url 'factures:view-pdf' invoice.id %}" frameborder="0" class="w-full h-full"></iframe>
+                    <iframe id="pdfIframe" src="{% url 'factures:view-pdf' invoice.id %}" frameborder="0" class="w-full h-full"></iframe>
                     {% endif %}
                 </div>
                 <!-- Log section -->
@@ -229,6 +229,9 @@
 
 {% block custom_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+
 <script type="text/javascript">
     let isDraft = {{ invoice.draft|yesno:"true,false" }};
     document.addEventListener('DOMContentLoaded', function () {
@@ -384,11 +387,14 @@
     }
 
     function downloadPDF() {
-        const invoiceId = "{{ invoice_id }}";
-        if (invoiceId) {
-            // Add your PDF download logic here
-        }
+        const iframe = document.getElementById('pdfIframe');
+        const iframeDocument = iframe.contentDocument.querySelector('.mx-auto')
+
+        html2pdf().from(iframeDocument).save();
+
+      console.log(iframeDocument)
     }
+
 </script>
 {% endblock %}
  
