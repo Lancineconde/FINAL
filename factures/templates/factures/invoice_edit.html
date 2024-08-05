@@ -64,6 +64,19 @@
             padding: 0.5rem;
             border-bottom: 1px solid #ccc;
         }
+        .log-user {
+            font-weight: bold;
+            color: #333;
+        }
+        .log-action {
+            display: flex;
+            align-items: center;
+            color: #666;
+        }
+        .log-action span {
+            margin-left: 0.5rem;
+            font-size: 0.875rem;
+        }
         .logs-container {
             max-height: 200px;
             overflow-y: auto;
@@ -191,9 +204,19 @@
                     <ul>
                         {% for entry in invoice.log %}
                         <li class="log-entry">
-                            <p><strong>Timestamp:</strong> {{ entry.timestamp }}</p>
-                            <p><strong>User:</strong> {{ entry.user }}</p>
-                            <p><strong>Message:</strong> {{ entry.message }}</p>
+                            <div class="log-user">{{ entry.user }}</div>
+                            <div class="log-action">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 001 1h1a1 1 0 100-2h-1V7zm0 6a1 1 0 10-2 0 1 1 0 001 1h1a1 1 0 100-2h-1v1a1 1 0 001 1z" clip-rule="evenodd" />
+                                </svg>
+                                <span>{{ entry.timestamp }}</span>
+                            </div>
+                            <div class="log-action">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 001 1h1a1 1 0 100-2h-1V7zm0 6a1 1 0 10-2 0 1 1 0 001 1h1a1 1 0 100-2h-1v1a1 1 0 001 1z" clip-rule="evenodd" />
+                                </svg>
+                                <span>{{ entry.message }}</span>
+                            </div>
                         </li>
                         {% endfor %}
                     </ul>
@@ -368,3 +391,4 @@
     }
 </script>
 {% endblock %}
+ 
