@@ -377,6 +377,9 @@
 
     function toggleDraftMode() {
         const draftButton = document.getElementById('draftButton');
+        const formElements = document.querySelectorAll('input, textarea, select');
+
+        // Update the button appearance based on draft status
         if (isDraft) {
             draftButton.classList.add('draft-mode');
             draftButton.classList.remove('completed-mode');
@@ -384,6 +387,19 @@
             draftButton.classList.add('completed-mode');
             draftButton.classList.remove('draft-mode');
         }
+
+        // Enable or disable form elements based on draft status
+        formElements.forEach(function (element) {
+            if (element.name !== 'draft' && element.type !== 'hidden' && element.id !== 'csrfmiddlewaretoken') {
+                element.readOnly = !isDraft;
+                element.disabled = !isDraft;
+            }
+        });
+
+        // Handle add button
+        document.querySelectorAll('.add-form-row').forEach(function (button) {
+            button.disabled = !isDraft;
+        });
     }
 
     function downloadPDF() {
