@@ -17,6 +17,7 @@ class Invoice(models.Model):
     tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=20.00, blank=True)
     unique_id = models.PositiveIntegerField(editable=False, null=True, blank=True)
     log = jsonfield.JSONField(default=list)
+    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
     def __str__(self):
         return str(self.customer)

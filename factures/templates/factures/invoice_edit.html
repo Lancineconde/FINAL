@@ -94,12 +94,15 @@
                     <div class='justify-between flex py-2'>
                         <div>
                             <button id="draftButton" class="form-input rounded py-2 px-2" type="button"> 
-                                {% if invoice.draft %} Brouillon {% else %} Terminé {% endif %}
+                                {% if invoice.draft %} Brouillon {% else %} Comptabilisé {% endif %}
                             </button>
                         </div>
                         <div>
                             <button type="button" class="rounded bg-indigo-500 px-4 py-2 text-white" onclick="downloadPDF()">
                                 Télécharger le PDF
+                            </button>
+                            <button type="button" class="rounded bg-indigo-500 px-4 py-2 text-white" data-toggle="modal" data-target="#paymentModal">
+                                Enregistrer un paiement
                             </button>
                         </div>
                     </div>
@@ -225,12 +228,37 @@
         </div>
     </div>
 </main>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">Enregistrer un paiement</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'factures:register-payment' invoice.id %}">
+                    {% csrf_token %}
+                    {{ payment_form.as_p }}
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block custom_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
 <script type="text/javascript">
     let isDraft = {{ invoice.draft|yesno:"true,false" }};
@@ -272,7 +300,7 @@
         document.getElementById('draftButton').addEventListener('click', function () {
             isDraft = !isDraft;
             document.getElementById('draftHidden').value = isDraft;
-            this.textContent = isDraft ? 'Brouillon' : 'Terminé';
+            this.textContent = isDraft ? 'Brouillon' : 'Comptabilisé';
             toggleDraftMode();
         });
 
@@ -288,6 +316,9 @@
             return false;
         });
 
+        $('button[data-target="#paymentModal"]').click(function() {
+            $('#paymentModal').modal('show');
+        });
     });
   
     function calcTotal() {
@@ -413,4 +444,3 @@
 
 </script>
 {% endblock %}
- 

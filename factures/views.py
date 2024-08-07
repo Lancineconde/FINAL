@@ -4,8 +4,8 @@ from django.shortcuts import render, redirect, get_object_or_404, reverse
 from django.http import HttpResponse
 from django.views import View
 from .models import LineItem, Invoice
-from .forms import LineItemFormset, InvoiceForm
-import pdfkit  # type: ignore
+from .forms import LineItemFormset, InvoiceForm, PaymentForm
+import pdfkit
 from pulls.utils import login_required_connect, CustomLoginRequiredMixin
 from tests.views import recup_infos_users
 from django.db.models import Q
@@ -24,18 +24,18 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
 
         if query:
             invoices = invoices.filter(
-                Q(customer__icontains(query)) | Q(invoice_number__icontains(query))
+                Q(customer__icontains=query) | Q(invoice_number__icontains=query)
             )
 
         if status_filter:
-            invoices = invoices.filter(status=status_filter == "1")
+            invoices = invoices.filter(status=(status_filter == "1"))
 
         if date_filter:
             today = datetime.now().date()
             if date_filter == "past":
-                invoices = invoices.filter(due_date__lt(today))
+                invoices = invoices.filter(due_date__lt=today)
             elif date_filter == "future":
-                invoices = invoices.filter(due_date__gt(today))
+                invoices = invoices.filter(due_date__gt=today)
 
         if completion_filter:
             if completion_filter == "completed":
@@ -56,8 +56,12 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
                 invoice.subtotal = Decimal("0.00")
                 invoice.tax = Decimal("0.00")
 
+        # Pagination
+        paginator = Paginator(invoices, 10)  # Show 10 invoices per page
+        paginated_invoices = paginator.get_page(page)
+
         context = {
-            "invoices": invoices,
+            "invoices": paginated_invoices,
             "query": query,
             "status_filter": status_filter,
             "date_filter": date_filter,
@@ -234,3 +238,29 @@ def generate_PDF(request, id):
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+@login_required_connect
+def register_payment(request, id):
+    invoice = get_object_or_404(Invoice, id=id)
+    
+    if request.method == 'POST':
+        form = PaymentForm(request.POST)
+        if form.is_valid():
+            amount_paid = form.cleaned_data['amount_paid']
+            if amount_paid < invoice.total_amount:
+                invoice.remaining_amount = invoice.total_amount - amount_paid
+                invoice.status = False  # Partially paid
+            else:
+                invoice.remaining_amount = 0
+                invoice.status = True  # Fully paid
+            invoice.save()
+            return redirect(reverse("factures:invoice-edit", args=[id]))
+    else:
+        form = PaymentForm()
+    
+    context = {
+        "invoice": invoice,
+        "form": form
+    }
+    return render(request, "factures/register_payment.html", context)

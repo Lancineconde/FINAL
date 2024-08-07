@@ -90,6 +90,7 @@
                             <th class="px-4 py-2">Total</th>
                             <th class="px-4 py-2">Statut de paiement</th>
                             <th class="px-4 py-2">Statut de la facture</th>
+                            <th class="px-4 py-2">Montant restant</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,7 +117,7 @@
                             <td class="px-4 py-2">{{ invoice.tax }}</td>
                             <td class="px-4 py-2">{{ invoice.total_amount }}</td>
                             <td class="px-4 py-2 text-right">
-                                {% if invoice.get_status %}
+                                {% if invoice.status %}
                                 <span class="bg-green-500 text-green-100 px-2 py-1 rounded-full">Payé</span>
                                 {% else %}
                                 <span class="bg-red-500 text-red-100 px-2 py-1 rounded-full">Non payé</span>
@@ -126,30 +127,35 @@
                                 {% if invoice.draft %}
                                 <span class="px-4 py-2">Brouillon</span>
                                 {% else %}
-                                <span class="px-4 py-2">Final</span>
+                                <span class="px-4 py-2">Comptabilisé</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2 text-right">
+                                {% if invoice.remaining_amount > 0 %}
+                                {{ invoice.remaining_amount }}
+                                {% else %}
+                                0
                                 {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                <!-- Pagination Controls -->
+                <div class="mt-4">
+                    <span class="text-sm text-gray-700">Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}</span>
+                    <div class="inline-block">
+                        {% if invoices.has_previous %}
+                        <a href="?{% if query %}q={{ query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_filter %}date={{ date_filter }}&{% endif %}{% if completion_filter %}completion={{ completion_filter }}&{% endif %}page={{ invoices.previous_page_number }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md">Précédent</a>
+                        {% endif %}
+                        {% if invoices.has_next %}
+                        <a href="?{% if query %}q={{ query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_filter %}date={{ date_filter }}&{% endif %}{% if completion_filter %}completion={{ completion_filter }}&{% endif %}page={{ invoices.next_page_number }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md">Suivant</a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div><br /><br /><br />
-    <div class="bg-white rounded-lg shadow-md p-4 mt-4">
-        <header class="bg-gray-200 px-4 py-2">
-            <p class="text-lg font-semibold">Changer le statut de la commande</p>
-        </header>
-        <div class="p-4 flex items-center">
-            <div class="inline-block relative w-32">
-                <select id="status" name="status" class="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline">
-                    <option value="1">Payé</option>
-                    <option value="0">Non payé</option>
-                </select>
-            </div>
-            <button type="submit" class="ml-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full">Changer le statut</button>
-        </div>
-    </div>
 </form>
 
 <script>
