@@ -17,7 +17,7 @@
             
             <div class="relative inline-block text-left ml-4 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 10v-2a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1zM3 18v-2a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1z" />
+                    <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 10v-2a1 1 0 011-1h16a1 1 0 011 1zM3 18v-2a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1z" />
                 </svg>
                 <div>
                     <button id="filterButton" type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500" aria-expanded="true" aria-haspopup="true">
@@ -117,8 +117,10 @@
                             <td class="px-4 py-2">{{ invoice.tax }}</td>
                             <td class="px-4 py-2">{{ invoice.total_amount }}</td>
                             <td class="px-4 py-2 text-right">
-                                {% if invoice.status %}
+                                {% if invoice.payment_status == "Payé" %}
                                 <span class="bg-green-500 text-green-100 px-2 py-1 rounded-full">Payé</span>
+                                {% elif invoice.payment_status == "Partiellement payé" %}
+                                <span class="bg-yellow-500 text-yellow-100 px-2 py-1 rounded-full">Partiellement payé</span>
                                 {% else %}
                                 <span class="bg-red-500 text-red-100 px-2 py-1 rounded-full">Non payé</span>
                                 {% endif %}
@@ -131,11 +133,7 @@
                                 {% endif %}
                             </td>
                             <td class="px-4 py-2 text-right">
-                                {% if invoice.remaining_amount > 0 %}
                                 {{ invoice.remaining_amount }}
-                                {% else %}
-                                0
-                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

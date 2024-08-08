@@ -88,7 +88,6 @@
     </style>
     <div class="relative h-full">
         <div class="main-grid absolute inset-0 p-4">
-            <!-- Carte de section de modification -->
             <div class="card">
                 <div>
                     <div class='justify-between flex py-2'>
@@ -196,12 +195,10 @@
             </div>
             <div class="card flex flex-col p-2">
                 <div class="flex-grow">
-                    <!-- Conteneur PDF -->
                     {% if invoice.pk %}
                     <iframe id="pdfIframe" src="{% url 'factures:view-pdf' invoice.id %}" frameborder="0" class="w-full h-full"></iframe>
                     {% endif %}
                 </div>
-                <!-- Log section -->
                 <div class="logs-container">
                     <h3 class="mb-4 text-xl font-bold">Logs</h3>
                     <ul>
@@ -229,7 +226,6 @@
     </div>
 </main>
 
-<!-- Payment Modal -->
 <div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -240,9 +236,32 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form method="post" action="{% url 'factures:register-payment' invoice.id %}">
+                <form id="paymentForm">
                     {% csrf_token %}
-                    {{ payment_form.as_p }}
+                    <div class="form-group">
+                        {{ payment_form.journal.label_tag }}
+                        {{ payment_form.journal }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_form.payment_mode.label_tag }}
+                        {{ payment_form.payment_mode }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_form.bank_account.label_tag }}
+                        {{ payment_form.bank_account }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_form.amount_paid.label_tag }}
+                        {{ payment_form.amount_paid }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_form.payment_date.label_tag }}
+                        {{ payment_form.payment_date }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_form.memo.label_tag }}
+                        {{ payment_form.memo }}
+                    </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
                         <button type="submit" class="btn btn-primary">Enregistrer</button>
@@ -316,8 +335,21 @@
             return false;
         });
 
-        $('button[data-target="#paymentModal"]').click(function() {
-            $('#paymentModal').modal('show');
+        $('#paymentForm').on('submit', function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                type: 'POST',
+                url: '{% url "factures:register-payment" invoice.id %}',
+                data: $(this).serialize(),
+                success: function (response) {
+                    $('#paymentModal').modal('hide');
+                    location.reload(); // Reload the page to reflect the updated payment status
+                },
+                error: function (response) {
+                    alert('Erreur lors de l\'enregistrement du paiement.');
+                }
+            });
         });
     });
   
@@ -326,7 +358,7 @@
         document.querySelectorAll("input[name*='amount']").forEach(function (el) {
             total += parseFloat(el.value) || 0;
         });
-        document.getElementById('invoiceSum').textContent = 'Total: ' + total.toFixed(2) ;
+        document.getElementById('invoiceSum').textContent = 'Total: ' + total.toFixed(2) + '€';
     }
 
     function cloneMore(selector, prefix) {
@@ -410,7 +442,6 @@
         const draftButton = document.getElementById('draftButton');
         const formElements = document.querySelectorAll('input, textarea, select');
 
-        // Update the button appearance based on draft status
         if (isDraft) {
             draftButton.classList.add('draft-mode');
             draftButton.classList.remove('completed-mode');
@@ -419,7 +450,6 @@
             draftButton.classList.remove('draft-mode');
         }
 
-        // Enable or disable form elements based on draft status
         formElements.forEach(function (element) {
             if (element.name !== 'draft' && element.type !== 'hidden' && element.id !== 'csrfmiddlewaretoken') {
                 element.readOnly = !isDraft;
@@ -427,7 +457,6 @@
             }
         });
 
-        // Handle add button
         document.querySelectorAll('.add-form-row').forEach(function (button) {
             button.disabled = !isDraft;
         });
@@ -436,10 +465,9 @@
     function downloadPDF() {
         const iframe = document.getElementById('pdfIframe');
         const iframeDocument = iframe.contentDocument.querySelector('.mx-auto')
-        const invoiceId = '{{ invoice_id }}';  // Make sure invoice_id is available
+        const invoiceId = '{{ invoice_id }}';
 
         html2pdf().from(iframeDocument).set({filename: `${invoiceId}`}).save();
-
     }
 
 </script>
