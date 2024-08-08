@@ -154,7 +154,7 @@ class CustomLoginRequiredMixin:
         return super().dispatch(*args, **kwargs)
 
 
-# Décorateur pour vérifier le type d'utilisateur
+# Decorator to verify user type
 def utilisateur_autorise(types_autorises):
     def decorateur(vue_fonction):
         @wraps(vue_fonction)
@@ -184,3 +184,10 @@ def utilisateur_autorise(types_autorises):
             return vue_fonction(request, *args, **kwargs)
         return vue_modifiee
     return decorateur
+
+
+class AdminRequiredMixin:
+    @method_decorator(login_required_connect)
+    @method_decorator(utilisateur_autorise(['admin', 'sup']))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)

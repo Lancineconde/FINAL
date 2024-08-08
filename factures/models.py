@@ -11,7 +11,7 @@ class Invoice(models.Model):
     due_date = models.DateField(null=True, blank=True)
     message = models.TextField(default="This is a default message.", blank=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    status = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, default='Non payé')
     invoice_number = models.CharField(max_length=30, unique=True, blank=True)
     draft = models.BooleanField(default=True)
     tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=20.00, blank=True)
@@ -36,6 +36,20 @@ class Invoice(models.Model):
                 orig = Invoice.objects.get(pk=self.pk)
                 if orig.date != self.date:
                     self.generate_invoice_number(update_unique_id=False)
+
+        # Ensure total_amount and remaining_amount are not None
+        if self.total_amount is None:
+            self.total_amount = Decimal('0.00')
+        if self.remaining_amount is None:
+            self.remaining_amount = self.total_amount
+
+        # Update payment status
+        if self.remaining_amount < self.total_amount and self.remaining_amount > 0:
+            self.status = "Partiellement payé"
+        elif self.remaining_amount == 0:
+            self.status = "Payé"
+        else:
+            self.status = "Non payé"
 
         super().save(*args, **kwargs)
 

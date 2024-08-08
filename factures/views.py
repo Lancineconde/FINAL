@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404, reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views import View
 from .models import LineItem, Invoice
 from .forms import LineItemFormset, InvoiceForm, PaymentForm
@@ -33,9 +33,9 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
         if date_filter:
             today = datetime.now().date()
             if date_filter == "past":
-                invoices = invoices.filter(due_date__lt=today)
+                invoices = invoices.filter(due_date__lt(today))
             elif date_filter == "future":
-                invoices = invoices.filter(due_date__gt=today)
+                invoices = invoices.filter(due_date__gt(today))
 
         if completion_filter:
             if completion_filter == "completed":
@@ -56,6 +56,14 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
                 invoice.subtotal = Decimal("0.00")
                 invoice.tax = Decimal("0.00")
 
+            # Calculate the payment status
+            if invoice.remaining_amount == 0:
+                invoice.payment_status = "Payé"
+            elif invoice.remaining_amount < invoice.total_amount:
+                invoice.payment_status = "Partiellement payé"
+            else:
+                invoice.payment_status = "Non payé"
+
         # Pagination
         paginator = Paginator(invoices, 10)  # Show 10 invoices per page
         paginated_invoices = paginator.get_page(page)
@@ -68,25 +76,6 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
             "completion_filter": completion_filter,
         }
         return render(request, "factures/invoice_list.html", context)
-
-    def post(self, request):
-        invoice_ids = request.POST.getlist("invoice_id")
-        invoice_ids = list(map(int, invoice_ids))
-
-        if "status" in request.POST:
-            update_status_for_invoices = int(request.POST["status"])
-            invoices = Invoice.objects.filter(id__in=invoice_ids)
-
-            for invoice in invoices:
-                original_status = invoice.status
-                new_status = update_status_for_invoices == 1
-                if original_status != new_status:
-                    invoice.status = new_status
-                    invoice.save()
-                    action = "Paid" if new_status else "Unpaid"
-                    invoice.add_log_entry(request.user, f"Status changed to {action}")
-
-        return redirect("factures:invoice-list")
 
 
 @login_required_connect
@@ -141,6 +130,10 @@ def create_or_edit_invoice(request, id=None):
                 original_total = invoice.total_amount
                 invoice.total_amount = total_with_tax
 
+                # Set remaining amount for new invoices or reset to total_amount if not partially paid
+                if invoice.draft:
+                    invoice.remaining_amount = total_with_tax
+
                 # Add log entry for total amount change
                 if original_total != invoice.total_amount:
                     invoice.add_log_entry(
@@ -152,7 +145,7 @@ def create_or_edit_invoice(request, id=None):
                 if not invoice.draft:
                     invoice.add_log_entry(request.user, "Status changed to Terminé")
                 else:
-                    invoice.add_log_entry(request.user, "Status changed to Brouillon")
+                    invoice.add_log_entry(request.user, "Invoice created")
 
                 # Save the invoice with logs
                 invoice.save()
@@ -174,10 +167,13 @@ def create_or_edit_invoice(request, id=None):
         else:
             formset = LineItemFormset(queryset=LineItem.objects.none())
 
+    payment_form = PaymentForm()  # Initialize the payment form
+
     context = {
         "title": heading_message,
         "form": form,
         "formset": formset,
+        "payment_form": payment_form,  # Add the payment form to the context
         "invoice_id": invoice.invoice_number if invoice else None,
         "invoice": invoice,
     }
@@ -186,6 +182,38 @@ def create_or_edit_invoice(request, id=None):
         "factures/invoice_edit.html" if id else "factures/invoice_create.html",
         context,
     )
+
+
+@login_required_connect
+def register_payment(request, id):
+    invoice = get_object_or_404(Invoice, id=id)
+
+    if request.method == "POST":
+        form = PaymentForm(request.POST)
+        if form.is_valid():
+            # Process the form data
+            journal = form.cleaned_data["journal"]
+            payment_mode = form.cleaned_data["payment_mode"]
+            bank_account = form.cleaned_data["bank_account"]
+            amount_paid = form.cleaned_data["amount_paid"]
+            payment_date = form.cleaned_data["payment_date"]
+            memo = form.cleaned_data["memo"]
+
+            invoice.remaining_amount -= amount_paid
+            if invoice.remaining_amount <= 0:
+                invoice.remaining_amount = 0
+                invoice.status = "payé"
+            elif invoice.remaining_amount < invoice.total_amount:
+                invoice.status = "partiellement payé"
+            invoice.save()
+            return JsonResponse({"success": True})
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
+    else:
+        form = PaymentForm()
+
+    context = {"invoice": invoice, "form": form}
+    return render(request, "factures/register_payment.html", context)
 
 
 @login_required_connect

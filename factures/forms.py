@@ -89,6 +89,19 @@ LineItemFormset = modelformset_factory(
 
 
 class PaymentForm(forms.Form):
-    amount_paid = forms.DecimalField(
-        max_digits=10, decimal_places=2, label="Amount Paid"
+    journal = forms.CharField(label="Journal", initial="Banque", required=False)
+    payment_mode = forms.CharField(
+        label="Mode de paiement", initial="Manual", required=False
     )
+    bank_account = forms.CharField(
+        label="Compte bancaire du bénéficiaire", required=False
+    )
+    amount_paid = forms.DecimalField(
+        max_digits=10, decimal_places=2, label="Montant", required=True
+    )
+    payment_date = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date"}),
+        label="Date de règlement",
+        required=True,
+    )
+    memo = forms.CharField(label="Mémo", initial="FAC/YYYY/MM/XXXX", required=False)
