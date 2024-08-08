@@ -24,7 +24,7 @@ class InvoiceForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "customer@company.com"}
             ),
             "billing_address": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": ""}
+                attrs={"class": "form-control", "placeholder": "Billing Address"}
             ),
             "date": forms.DateInput(
                 attrs={
@@ -89,4 +89,6 @@ LineItemFormset = modelformset_factory(
 
 
 class PaymentForm(forms.Form):
-    amount_paid = forms.DecimalField(max_digits=10, decimal_places=2, label="Amount Paid")
+    amount_paid = forms.DecimalField(
+        max_digits=10, decimal_places=2, label="Amount Paid"
+    )

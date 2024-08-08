@@ -117,25 +117,24 @@ def create_or_edit_invoice(request, id=None):
                     invoice.draft = False  # Mark as finalized
 
                 total = Decimal("0.00")
-                invoice.lineitem_set.all().delete()  # Delete existing line items
                 for form in formset:
-                    if form.cleaned_data and not form.cleaned_data.get("DELETE"):
-                        service = form.cleaned_data.get("service")
-                        description = form.cleaned_data.get("description")
-                        quantity = form.cleaned_data.get("quantity")
-                        rate = form.cleaned_data.get("rate")
-                        if service and description and quantity and rate:
-                            amount = Decimal(rate) * Decimal(quantity)
-                            total += amount
-                            line_item = LineItem(
-                                invoice=invoice,
-                                service=service,
-                                description=description,
-                                quantity=quantity,
-                                rate=rate,
-                                amount=amount,
-                            )
-                            line_item.save()
+                    if form.cleaned_data:
+                        if form.cleaned_data.get("DELETE"):
+                            line_item_id = form.cleaned_data.get("id")
+                            if line_item_id:
+                                LineItem.objects.filter(id=line_item_id.id).delete()
+                        else:
+                            service = form.cleaned_data.get("service")
+                            description = form.cleaned_data.get("description")
+                            quantity = form.cleaned_data.get("quantity")
+                            rate = form.cleaned_data.get("rate")
+                            if service and description and quantity and rate:
+                                amount = Decimal(rate) * Decimal(quantity)
+                                total += amount
+                                line_item = form.save(commit=False)
+                                line_item.invoice = invoice
+                                line_item.amount = amount
+                                line_item.save()
 
                 tax = total * (invoice.tax_percentage / 100)
                 total_with_tax = total + tax
@@ -168,7 +167,6 @@ def create_or_edit_invoice(request, id=None):
         else:
             print("Form is invalid")
             print(f"Form errors: {form.errors}")
-
     else:
         form = InvoiceForm(instance=invoice)
         if invoice.pk:
@@ -243,11 +241,11 @@ def generate_PDF(request, id):
 @login_required_connect
 def register_payment(request, id):
     invoice = get_object_or_404(Invoice, id=id)
-    
-    if request.method == 'POST':
+
+    if request.method == "POST":
         form = PaymentForm(request.POST)
         if form.is_valid():
-            amount_paid = form.cleaned_data['amount_paid']
+            amount_paid = form.cleaned_data["amount_paid"]
             if amount_paid < invoice.total_amount:
                 invoice.remaining_amount = invoice.total_amount - amount_paid
                 invoice.status = False  # Partially paid
@@ -258,9 +256,6 @@ def register_payment(request, id):
             return redirect(reverse("factures:invoice-edit", args=[id]))
     else:
         form = PaymentForm()
-    
-    context = {
-        "invoice": invoice,
-        "form": form
-    }
+
+    context = {"invoice": invoice, "form": form}
     return render(request, "factures/register_payment.html", context)

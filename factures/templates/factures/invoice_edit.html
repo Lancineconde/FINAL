@@ -368,14 +368,9 @@
         var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
         if (total > 1) {
             btn.closest('tr').remove();
-            var forms = $('#invoiceItems tr');
             $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
-            for (var i = 0, formCount = forms.length; i < formCount; i++) {
-                $(forms.get(i)).find(':input').each(function () {
-                    updateElementIndex(this, prefix, i);
-                });
-            }
-        }
+            updateFormIndices()
+        } 
         return false;
     }
 
@@ -429,11 +424,14 @@
             draftButton.classList.remove('draft-mode');
         }
 
-        // Enable or disable form elements based on draft status
+        // Enable or set form elements to readonly based on draft status
         formElements.forEach(function (element) {
             if (element.name !== 'draft' && element.type !== 'hidden' && element.id !== 'csrfmiddlewaretoken') {
-                element.readOnly = !isDraft;
-                element.disabled = !isDraft;
+                if (isDraft) {
+                    element.removeAttribute('readonly');
+                } else {
+                    element.setAttribute('readonly', true);
+                }
             }
         });
 
@@ -441,6 +439,7 @@
         document.querySelectorAll('.add-form-row').forEach(function (button) {
             button.disabled = !isDraft;
         });
+
     }
 
     function downloadPDF() {
