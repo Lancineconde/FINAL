@@ -82,6 +82,7 @@ class InvoiceListView(CustomLoginRequiredMixin, View):
 def create_or_edit_invoice(request, id=None):
     if id:
         invoice = get_object_or_404(Invoice, id=id)
+        original_invoice = Invoice.objects.get(pk=id)
         heading_message = "Edit Invoice"
     else:
         invoice = Invoice(
@@ -89,6 +90,7 @@ def create_or_edit_invoice(request, id=None):
             due_date=datetime.now().date() + timedelta(days=30),
             draft=True,
         )
+        original_invoice = None
         heading_message = "Create Invoice"
 
     if request.method == "POST":
@@ -134,18 +136,45 @@ def create_or_edit_invoice(request, id=None):
                 if invoice.draft:
                     invoice.remaining_amount = total_with_tax
 
-                # Add log entry for total amount change
-                if original_total != invoice.total_amount:
-                    invoice.add_log_entry(
-                        request.user,
-                        f"Total changed from {original_total or '0'} to {invoice.total_amount}",
-                    )
-
-                # Add log entry for draft status change
-                if not invoice.draft:
-                    invoice.add_log_entry(request.user, "Status changed to Terminé")
-                else:
+                # Add log entry for field changes
+                if not original_invoice:
                     invoice.add_log_entry(request.user, "Invoice created")
+
+                else:
+                    if original_invoice.draft and not invoice.draft:  # type: ignore
+                        # invoice.add_log_entry(request.user, "Status changed to Terminé")
+                        invoice.add_log_entry(
+                            request.user, "Status changed to Comptabilisé"
+                        )
+                    if not original_invoice.draft and invoice.draft:
+                        invoice.add_log_entry(
+                            request.user, "Status changed to Brouillon"
+                        )
+
+                    # Add log entry for total amount change
+                    if original_total != invoice.total_amount:
+                        invoice.add_log_entry(
+                            request.user,
+                            f"Total changed from {original_total or '0'} to {invoice.total_amount}",
+                        )
+
+                    fields_to_log = [
+                        "date",
+                        "due_date",
+                        "customer_email",
+                        "customer",
+                        "tax_percentage",
+                        "billing_address",
+                    ]
+
+                    for field in fields_to_log:
+                        original_value = getattr(original_invoice, field)
+                        new_value = getattr(invoice, field)
+                        if original_value != new_value:
+                            invoice.add_log_entry(
+                                request.user,
+                                f"{field.replace('_', ' ').capitalize()} changed from {original_value} to {new_value}",
+                            )
 
                 # Save the invoice with logs
                 invoice.save()
