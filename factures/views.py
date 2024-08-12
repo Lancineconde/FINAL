@@ -214,38 +214,6 @@ def create_or_edit_invoice(request, id=None):
 
 
 @login_required_connect
-def register_payment(request, id):
-    invoice = get_object_or_404(Invoice, id=id)
-
-    if request.method == "POST":
-        form = PaymentForm(request.POST)
-        if form.is_valid():
-            # Process the form data
-            journal = form.cleaned_data["journal"]
-            payment_mode = form.cleaned_data["payment_mode"]
-            bank_account = form.cleaned_data["bank_account"]
-            amount_paid = form.cleaned_data["amount_paid"]
-            payment_date = form.cleaned_data["payment_date"]
-            memo = form.cleaned_data["memo"]
-
-            invoice.remaining_amount -= amount_paid
-            if invoice.remaining_amount <= 0:
-                invoice.remaining_amount = 0
-                invoice.status = "payé"
-            elif invoice.remaining_amount < invoice.total_amount:
-                invoice.status = "partiellement payé"
-            invoice.save()
-            return JsonResponse({"success": True})
-        else:
-            return JsonResponse({"success": False, "errors": form.errors})
-    else:
-        form = PaymentForm()
-
-    context = {"invoice": invoice, "form": form}
-    return render(request, "factures/register_payment.html", context)
-
-
-@login_required_connect
 def view_PDF(request, id=None):
     invoice = get_object_or_404(Invoice, id=id)
     lineitem = invoice.lineitem_set.all()
@@ -306,11 +274,12 @@ def register_payment(request, id):
             if amount_paid < invoice.total_amount:
                 invoice.remaining_amount = invoice.total_amount - amount_paid
                 invoice.status = False  # Partially paid
+                invoice.save()
             else:
                 invoice.remaining_amount = 0
                 invoice.status = True  # Fully paid
-            invoice.save()
-            return redirect(reverse("factures:invoice-edit", args=[id]))
+                invoice.save()
+            return redirect("/factures")
     else:
         form = PaymentForm()
 

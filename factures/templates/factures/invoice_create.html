@@ -43,8 +43,8 @@
                     </div>
                     <div class="columns is-centered">
                         <div class="column is-one-third">
-                            <label>Statut</label>
-                            <select name="draft" class="input" id="draft" onchange="toggleInputs()">
+                            <label>Status</label>
+                            <select name="draft" class="input" id="draft">
                                 <option value="1" {% if invoice.draft %}selected{% endif %}>Brouillon</option>
                                 <option value="0" {% if not invoice.draft %}selected{% endif %}>Terminé</option>
                             </select>
@@ -113,56 +113,65 @@
 
 {% block custom_js %}
 <script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-        flatpickr("#id_date", {
-            altInput: true,
-            altFormat: "j F, Y",
-            dateFormat: "Y-m-d",
-            onChange: function(selectedDates, dateStr, instance) {
-                // Calculate new due date
-                const dueDateField = document.getElementById('id_due_date');
-                const newDate = new Date(dateStr);
-                newDate.setDate(newDate.getDate() + 30);
-                dueDateField._flatpickr.setDate(newDate);
-            }
-        });
-        flatpickr("#id_due_date", {
-            altInput: true,
-            altFormat: "j F, Y",
-            dateFormat: "Y-m-d",
-        });
+document.addEventListener('DOMContentLoaded', function () {
+ // Retrieve the current status from the backend
+    let isDraft = document.getElementById('draft').value === "0";  // Default to "Brouillon" if value is "1"
+    document.getElementById('draft').value = isDraft ? "1" : "0";
 
-        calc_total();
-        toggleInputs();
+    // Initialize the form based on the draft status
+    toggleDraftMode(isDraft);
+
+    // Flatpickr initialization for date fields
+    const today = new Date();
+    const dueDate = new Date();
+    dueDate.setDate(today.getDate() + 30);
+
+    flatpickr("#id_date", {
+        altInput: true,
+        altFormat: "j F, Y",
+        dateFormat: "Y-m-d",
+        defaultDate: today,
+        onChange: function(selectedDates, dateStr, instance) {
+            const dueDateField = document.getElementById('id_due_date');
+            const newDate = new Date(dateStr);
+            newDate.setDate(newDate.getDate() + 30);
+            dueDateField._flatpickr.setDate(newDate);
+        }
     });
 
-    function toggleInputs() {
-        var draftSelector = document.getElementById('draft');
-        var isDraft = draftSelector.value === '1';
-        var inputs = document.querySelectorAll('form input, form select, form textarea, form button');
-        
-        inputs.forEach(function(input) {
-            if (input.id !== 'draft' && input.type !== 'submit') {
-                input.disabled = !isDraft;
-            }
-        });
-    }
+    flatpickr("#id_due_date", {
+        altInput: true,
+        altFormat: "j F, Y",
+        dateFormat: "Y-m-d",
+        defaultDate: dueDate  // Set default due date to 30 days from today
+    });
 
+    // Calculate the total amount on page load
+    calc_total();
+
+    // Event listener for draft mode toggle
+    document.getElementById('draft').addEventListener('change', function () {
+        isDraft = this.value === "true";
+        toggleDraftMode(isDraft);
+    });
+
+    // Recalculate totals on input change in the table
     document.querySelectorAll('table input').forEach(function(element) {
         element.addEventListener('input', function () {
-            var row = this.closest('tr');
-            var rate = parseFloat(row.querySelector("input[name$='-rate']").value) || 0;
-            var quantity = parseFloat(row.querySelector("input[name$='-quantity']").value) || 0;
-            var amount = rate * quantity;
+            const row = this.closest('tr');
+            const rate = parseFloat(row.querySelector("input[name$='-rate']").value) || 0;
+            const quantity = parseFloat(row.querySelector("input[name$='-quantity']").value) || 0;
+            const amount = rate * quantity;
             row.querySelector('.amount').textContent = amount.toFixed(2);
             calc_total();
         });
     });
 
+    // Calculate the total amount
     function calc_total() {
-        var sum = 0;
+        let sum = 0;
         document.querySelectorAll(".amount").forEach(function(element) {
-            var value = parseFloat(element.textContent);
+            const value = parseFloat(element.textContent);
             if (!isNaN(value)) {
                 sum += value;
             }
@@ -170,54 +179,17 @@
         document.getElementById('total').textContent = sum.toFixed(2);
     }
 
-    function updateElementIndex(el, prefix, ndx) {
-        var id_regex = new RegExp('(' + prefix + '-\\d+)');
-        var replacement = prefix + '-' + ndx;
-        if (el.getAttribute("for")) el.setAttribute("for", el.getAttribute("for").replace(id_regex, replacement));
-        if (el.id) el.id = el.id.replace(id_regex, replacement);
-        if (el.name) el.name = el.name.replace(id_regex, replacement);
-    }
-
-    function cloneMore(selector, prefix) {
-        var newElement = document.querySelector(selector).cloneNode(true);
-        var total = document.getElementById('id_' + prefix + '-TOTAL_FORMS').value;
-        newElement.querySelectorAll(':input:not([type=button]):not([type=submit]):not([type=reset])').forEach(function(element) {
-            var name = element.getAttribute('name');
-            if (name) {
-                name = name.replace('-' + (total - 1) + '-', '-' + total + '-');
-                var id = 'id_' + name;
-                element.setAttribute({ 'name': name, 'id': id }).value = '';
-                element.removeAttribute('checked');
+    // Toggle draft mode to make the form read-only or editable
+    function toggleDraftMode(isDraft) {
+        const inputs = document.querySelectorAll('form input, form select, form textarea, form button');
+        inputs.forEach(function(input) {
+            if (input.id !== 'draft' && input.type !== 'submit') {
+                input.disabled = isDraft;  // Disable inputs in draft mode
             }
         });
-        newElement.querySelectorAll('label').forEach(function(element) {
-            var forValue = element.getAttribute('for');
-            if (forValue) {
-                forValue = forValue.replace('-' + (total - 1) + '-', '-' + total + '-');
-                element.setAttribute('for', forValue);
-            }
-        });
-        total++;
-        document.getElementById('id_' + prefix + '-TOTAL_FORMS').value = total;
-        document.querySelector(selector).after(newElement);
-        return false;
     }
 
-    function deleteForm(prefix, btn) {
-        var total = parseInt(document.getElementById('id_' + prefix + '-TOTAL_FORMS').value);
-        if (total > 1) {
-            btn.closest('tr').remove();
-            var forms = document.querySelectorAll('#line-item-forms tr');
-            document.getElementById('id_' + prefix + '-TOTAL_FORMS').value = forms.length;
-            forms.forEach(function(form, index) {
-                form.querySelectorAll(':input').forEach(function(input) {
-                    updateElementIndex(input, prefix, index);
-                });
-            });
-        }
-        return false;
-    }
-
+    // Handle adding and removing form rows
     document.querySelectorAll('.add-form-row').forEach(function(button) {
         button.addEventListener('click', function (e) {
             e.preventDefault();
@@ -233,5 +205,65 @@
             return false;
         });
     });
+
+    // Cloning and deleting rows
+    function cloneMore(selector, prefix) {
+        const newElement = document.querySelector(selector).cloneNode(true);
+        let total = parseInt(document.getElementById('id_' + prefix + '-TOTAL_FORMS').value);
+        total++;
+
+        newElement.querySelectorAll(':input:not([type=button]):not([type=submit]):not([type=reset])').forEach(function(element) {
+            const name = element.getAttribute('name').replace(`-${total - 1}-`, `-${total}-`);
+            const id = 'id_' + name;
+            element.setAttribute('name', name);
+            element.setAttribute('id', id);
+            element.value = '';
+        });
+
+        newElement.querySelectorAll('label').forEach(function(label) {
+            const newFor = label.getAttribute('for').replace(`-${total - 1}-`, `-${total}-`);
+            label.setAttribute('for', newFor);
+        });
+
+        document.getElementById('id_' + prefix + '-TOTAL_FORMS').value = total;
+        document.querySelector(selector).after(newElement);
+
+        // Re-bind the input event listener for recalculating totals on the new row
+        newElement.querySelectorAll('input').forEach(function(element) {
+            element.addEventListener('input', function () {
+                const row = this.closest('tr');
+                const rate = parseFloat(row.querySelector("input[name$='-rate']").value) || 0;
+                const quantity = parseFloat(row.querySelector("input[name$='-quantity']").value) || 0;
+                const amount = rate * quantity;
+                row.querySelector('.amount').textContent = amount.toFixed(2);
+                calc_total();
+            });
+        });
+    }
+
+    function deleteForm(prefix, btn) {
+        let total = parseInt(document.getElementById('id_' + prefix + '-TOTAL_FORMS').value);
+        if (total > 1) {
+            btn.closest('tr').remove();
+            total--;
+            document.getElementById('id_' + prefix + '-TOTAL_FORMS').value = total;
+
+            const forms = document.querySelectorAll('#line-item-forms tr');
+            forms.forEach((form, index) => {
+                form.querySelectorAll(':input').forEach(input => {
+                    updateElementIndex(input, prefix, index);
+                });
+            });
+        }
+    }
+
+    function updateElementIndex(el, prefix, ndx) {
+        const idRegex = new RegExp('(' + prefix + '-\\d+)');
+        const replacement = prefix + '-' + ndx;
+        if (el.getAttribute("for")) el.setAttribute("for", el.getAttribute("for").replace(idRegex, replacement));
+        if (el.id) el.id = el.id.replace(idRegex, replacement);
+        if (el.name) el.name = el.name.replace(idRegex, replacement);
+    }
+});
 </script>
 {% endblock %}

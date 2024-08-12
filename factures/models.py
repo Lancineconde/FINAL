@@ -3,6 +3,7 @@ import datetime
 from decimal import Decimal
 import jsonfield
 
+
 class Invoice(models.Model):
     customer = models.CharField(max_length=255, blank=True)
     customer_email = models.EmailField(null=True, blank=True)
@@ -10,14 +11,20 @@ class Invoice(models.Model):
     date = models.DateField(blank=True, null=True)
     due_date = models.DateField(null=True, blank=True)
     message = models.TextField(default="This is a default message.", blank=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    status = models.CharField(max_length=20, default='Non payé')
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True
+    )
+    status = models.CharField(max_length=20, default="Non payé")
     invoice_number = models.CharField(max_length=30, unique=True, blank=True)
     draft = models.BooleanField(default=True)
-    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=20.00, blank=True)
+    tax_percentage = models.DecimalField(
+        max_digits=5, decimal_places=2, default=20.00, blank=True
+    )
     unique_id = models.PositiveIntegerField(editable=False, null=True, blank=True)
     log = jsonfield.JSONField(default=list)
-    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    remaining_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
 
     def __str__(self):
         return str(self.customer)
@@ -39,7 +46,7 @@ class Invoice(models.Model):
 
         # Ensure total_amount and remaining_amount are not None
         if self.total_amount is None:
-            self.total_amount = Decimal('0.00')
+            self.total_amount = Decimal("0.00")
         if self.remaining_amount is None:
             self.remaining_amount = self.total_amount
 
@@ -63,20 +70,29 @@ class Invoice(models.Model):
             invoice_month = current_date.month
 
         if update_unique_id or not self.unique_id:
-            last_invoice = Invoice.objects.filter(date__year=invoice_year).order_by('-unique_id').first()
+            last_invoice = (
+                Invoice.objects.filter(date__year=invoice_year)
+                .order_by("-unique_id")
+                .first()
+            )
             self.unique_id = (last_invoice.unique_id if last_invoice else 0) + 1
 
-        self.invoice_number = f"FAC/{invoice_year}/{invoice_month:02d}/{self.unique_id:04d}"
+        self.invoice_number = (
+            f"FAC/{invoice_year}/{invoice_month:02d}/{self.unique_id:04d}"
+        )
 
     def add_log_entry(self, user, message):
-        username = getattr(user, 'username', getattr(user, 'users_name', 'Unknown User'))
+        username = getattr(
+            user, "username", getattr(user, "users_name", "Unknown User")
+        )
         log_entry = {
             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "user": username,
-            "message": message
+            "message": message,
         }
         self.log.append(log_entry)
         self.save()
+
 
 class LineItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
@@ -90,5 +106,9 @@ class LineItem(models.Model):
         return f"{self.service} for {self.invoice}"
 
     def save(self, *args, **kwargs):
-        self.amount = Decimal(self.quantity) * Decimal(self.rate) if self.quantity and self.rate else Decimal("0.00")
+        self.amount = (
+            Decimal(self.quantity) * Decimal(self.rate)
+            if self.quantity and self.rate
+            else Decimal("0.00")
+        )
         super().save(*args, **kwargs)
