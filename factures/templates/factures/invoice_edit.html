@@ -285,10 +285,47 @@
     let isDraft = {{ invoice.draft|yesno:"true,false" }};
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.querySelector('form');
+        const paymentForm = document.getElementById('paymentForm')
         
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
             const submitButton = form.querySelector('button[type="submit"]');
             submitButton.disabled = true;
+
+            $.ajax({
+                type: 'POST',
+                url: form.action,
+                data: $(form).serialize(),
+                success: function(response) {
+                    // Handle success (e.g., display a message, redirect)
+                    alert('Invoice saved successfully!');
+                    submitButton.disabled = false;
+                    window.location.href = '/factures'; // Redirect to the /invoices page
+                },
+                error: function(response) {
+                    // Handle error
+                    alert('Error saving invoice.');
+                    submitButton.disabled = false;
+                }
+            });
+        });
+
+        $('#paymentForm').on('submit', function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                type: 'POST',
+                url: '{% url "factures:register-payment" invoice.id %}',
+                data: $(this).serialize(),
+                success: function (response) {
+                    $('#paymentModal').modal('hide');
+                    location.reload(); // Reload the page to reflect the updated payment status
+                    window.location.href = '/factures'; // Redirect to the /invoices page
+                },
+                error: function (response) {
+                    alert('Erreur lors de l\'enregistrement du paiement.');
+                }
+            });
         });
 
         flatpickr("#id_date", {
@@ -337,22 +374,6 @@
             return false;
         });
 
-        $('#paymentForm').on('submit', function (e) {
-            e.preventDefault();
-
-            $.ajax({
-                type: 'POST',
-                url: '{% url "factures:register-payment" invoice.id %}',
-                data: $(this).serialize(),
-                success: function (response) {
-                    $('#paymentModal').modal('hide');
-                    location.reload(); // Reload the page to reflect the updated payment status
-                },
-                error: function (response) {
-                    alert('Erreur lors de l\'enregistrement du paiement.');
-                }
-            });
-        });
     });
   
     function calcTotal() {

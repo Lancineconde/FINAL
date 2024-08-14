@@ -266,7 +266,6 @@ def generate_PDF(request, id):
 @login_required_connect
 def register_payment(request, id):
     invoice = get_object_or_404(Invoice, id=id)
-
     if request.method == "POST":
         form = PaymentForm(request.POST)
         if form.is_valid():
@@ -274,12 +273,20 @@ def register_payment(request, id):
             if amount_paid < invoice.total_amount:
                 invoice.remaining_amount = invoice.total_amount - amount_paid
                 invoice.status = False  # Partially paid
+                invoice.add_log_entry(
+                    request.user,
+                    f"Made a partial of {amount_paid}€ remaining amount {invoice.remaining_amount}€",
+                )
                 invoice.save()
+
             else:
                 invoice.remaining_amount = 0
                 invoice.status = True  # Fully paid
+                invoice.add_log_entry(
+                    request.user,
+                    f"Made a full payment of {amount_paid}€ remaining amount 0€",
+                )
                 invoice.save()
-            return redirect("/factures")
     else:
         form = PaymentForm()
 
