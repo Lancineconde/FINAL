@@ -297,8 +297,6 @@
                 url: form.action,
                 data: $(form).serialize(),
                 success: function(response) {
-                    // Handle success (e.g., display a message, redirect)
-                    alert('Invoice saved successfully!');
                     submitButton.disabled = false;
                     window.location.href = '/factures'; // Redirect to the /invoices page
                 },
